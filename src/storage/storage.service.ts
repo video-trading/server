@@ -19,7 +19,7 @@ export class StorageService {
 
   async generatePreSignedUrl(video: Video) {
     const params = {
-      Bucket: process.env.AWS_BUCKET_NAME,
+      Bucket: process.env.SERVER_AWS_BUCKET_NAME,
       Key: `Video/${video.id}`,
       Expires: 60 * 60 * 24,
     };
