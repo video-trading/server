@@ -10,6 +10,10 @@ export class StorageService {
   constructor() {
     this.s3 = new S3({
       endpoint: process.env.SERVER_AWS_ENDPOINT,
+      credentials: {
+        accessKeyId: process.env.SERVER_AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.SERVER_AWS_SECRET_ACCESS_KEY,
+      },
     });
   }
 
