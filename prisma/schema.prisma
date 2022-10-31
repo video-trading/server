@@ -1,0 +1,45 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model Video {
+  id          String        @id @default(auto()) @map("_id") @db.ObjectId
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime?     @updatedAt
+  title       String
+  url         String?
+  thumbnail   String?
+  duration    Int?
+  views       Int           @default(0)
+  likes       Int           @default(0)
+  dislikes    Int           @default(0)
+  comments    Comment[]
+  Transcoding Transcoding[]
+}
+
+model Comment {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  text      String
+  video     Video    @relation(fields: [videoId], references: [id])
+  videoId   String
+}
+
+model Transcoding {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  video     Video    @relation(fields: [videoId], references: [id])
+  videoId   String
+  status    String
+  progress  Int
+}
