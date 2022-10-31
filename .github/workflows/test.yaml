@@ -1,0 +1,19 @@
+# test node js project
+name: Test
+
+on: push
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '16.x'
+      - uses: pnpm/action-setup@v2.2.4
+        with:
+          version: 7.1.5
+      - run: pnpm install
+      - run: pnpm test
+      - run: pnpm build
