@@ -9,7 +9,7 @@ export class StorageService {
 
   constructor() {
     this.s3 = new S3({
-      endpoint: process.env.AWS_ENDPOINT,
+      endpoint: process.env.SERVER_AWS_ENDPOINT,
     });
   }
 
