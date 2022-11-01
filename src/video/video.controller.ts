@@ -66,8 +66,8 @@ export class VideoController {
     return this.videoService.remove(id);
   }
 
-  @Post(':id/analyzeResult')
-  async updateAnalyzeResult(
+  @Post(':id/analyzing/result')
+  async submitAnalyingResult(
     @Param('id') id: string,
     @Body() result: Prisma.AnalyzingResultCreateInput,
   ) {
@@ -75,6 +75,11 @@ export class VideoController {
       id,
       result,
     );
-    await this.transcodingService.createTranscodingsWithVideo(analyzingResult);
+    const transodings =
+      await this.transcodingService.createTranscodingsWithVideo(
+        analyzingResult,
+      );
+
+    return transodings;
   }
 }

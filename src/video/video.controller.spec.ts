@@ -93,7 +93,7 @@ describe('VideoController', () => {
     const analyzeResult: any = {
       quality: VideoQuality.Quality360p,
     };
-    await controller.updateAnalyzeResult(result.video.id, analyzeResult);
+    await controller.submitAnalyingResult(result.video.id, analyzeResult);
     expect(await prisma.transcoding.count()).toBe(3);
   });
 });
