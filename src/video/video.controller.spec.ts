@@ -1,14 +1,15 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { Prisma } from '@prisma/client';
 import { MongoMemoryReplSet } from 'mongodb-memory-server';
-import { StorageService } from '../storage/storage.service';
 import { PrismaService } from '../prisma.service';
+import { StorageService } from '../storage/storage.service';
 
+import { AMQPModule } from '@enriqcg/nestjs-amqp';
+import { ConfigModule } from '@nestjs/config';
+import { VideoQuality } from '../common/video';
+import { TranscodingService } from '../transcoding/transcoding.service';
 import { VideoController } from './video.controller';
 import { VideoService } from './video.service';
-import { ConfigModule } from '@nestjs/config';
-import { TranscodingService } from '../transcoding/transcoding.service';
-import { VideoQuality } from '../common/videoQuality';
 
 jest.mock('aws-sdk', () => ({
   S3: require('../utils/test-utils/aws-sdk.mock').S3,
@@ -32,7 +33,7 @@ describe('VideoController', () => {
   beforeEach(async () => {
     process.env.DATABASE_URL = mongod.getUri('video');
     const module: TestingModule = await Test.createTestingModule({
-      imports: [ConfigModule],
+      imports: [ConfigModule, AMQPModule.forRoot({})],
       controllers: [VideoController],
       providers: [
         VideoService,
@@ -58,7 +59,6 @@ describe('VideoController', () => {
       updatedAt: undefined,
       url: '',
       thumbnail: '',
-      duration: 0,
       views: 0,
       likes: 0,
       dislikes: 0,
@@ -83,7 +83,6 @@ describe('VideoController', () => {
       updatedAt: undefined,
       url: '',
       thumbnail: '',
-      duration: 0,
       views: 0,
       likes: 0,
       dislikes: 0,

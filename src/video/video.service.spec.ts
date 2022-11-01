@@ -3,6 +3,7 @@ import { VideoService } from './video.service';
 import { MongoMemoryReplSet } from 'mongodb-memory-server';
 import { Prisma, PrismaClient } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
+import { AMQPModule } from '@enriqcg/nestjs-amqp';
 
 describe('VideoService', () => {
   let service: VideoService;
@@ -22,6 +23,7 @@ describe('VideoService', () => {
   beforeEach(async () => {
     process.env.DATABASE_URL = mongod.getUri('video');
     const module: TestingModule = await Test.createTestingModule({
+      imports: [AMQPModule.forRoot({})],
       providers: [VideoService, PrismaService],
     }).compile();
 
