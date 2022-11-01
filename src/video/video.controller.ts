@@ -7,24 +7,31 @@ import {
   Param,
   Delete,
 } from '@nestjs/common';
-import { Prisma, Video } from '@prisma/client';
+import { Prisma, Video, Transcoding } from '@prisma/client';
 import { Pagination } from 'src/common/types';
 import { TranscodingService } from '../transcoding/transcoding.service';
 import { StorageService } from '../storage/storage.service';
 import { config } from '../utils/config/config';
 import { VideoService } from './video.service';
+import { InjectAMQPChannel } from '@enriqcg/nestjs-amqp';
+import { Channel } from 'amqplib';
+import { ApiCreatedResponse, ApiTags } from '@nestjs/swagger';
+import { CreateVideoDto } from './dto/create-video.dto';
 
 @Controller('video')
+@ApiTags('video')
 export class VideoController {
   constructor(
     private readonly videoService: VideoService,
     private readonly storageService: StorageService,
     private readonly transcodingService: TranscodingService,
+    @InjectAMQPChannel()
+    private readonly amqpChannel: Channel,
   ) {}
 
   @Post()
   async create(
-    @Body() video: Prisma.VideoCreateInput,
+    @Body() video: CreateVideoDto,
   ): Promise<{ video: Video; preSignedURL: string }> {
     const createdVideo = await this.videoService.create(video);
     const preSignedURL = await this.storageService.generatePreSignedUrl(
@@ -34,6 +41,18 @@ export class VideoController {
       video: createdVideo,
       preSignedURL,
     };
+  }
+
+  @Post(':id/analyzing')
+  async startAnalyzing(@Param('id') id: string) {
+    const video = await this.videoService.findOne(id);
+    const success = this.amqpChannel.publish(
+      'video',
+      'analyzing',
+      Buffer.from(JSON.stringify(video)),
+    );
+
+    return { success };
   }
 
   @Get()
@@ -67,6 +86,10 @@ export class VideoController {
   }
 
   @Post(':id/analyzing/result')
+  @ApiCreatedResponse({
+    description:
+      'Submit analyzing result and then create a list of transcoding video using the transcoding result',
+  })
   async submitAnalyingResult(
     @Param('id') id: string,
     @Body() result: Prisma.AnalyzingResultCreateInput,

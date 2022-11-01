@@ -1,19 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma, Video, AnalyzingResult } from '@prisma/client';
-import { VideoQuality } from '../common/videoQuality';
+import { TranscodingStatus, VideoQuality } from '../common/video';
 import { PrismaService } from '../prisma.service';
-import { TranscodingStatus } from './transcoding.controller';
 
 @Injectable()
 export class TranscodingService {
   constructor(private readonly prismService: PrismaService) {}
-
   create(data: Prisma.TranscodingUncheckedCreateInput) {
     return this.prismService.transcoding.create({
       data,
     });
   }
-
   /**
    * Find transcodings by video id
    * @param video Video to be transcoded
@@ -26,7 +23,6 @@ export class TranscodingService {
       },
     });
   }
-
   update(id: string, status: TranscodingStatus) {
     return this.prismService.transcoding.update({
       where: { id },
@@ -35,20 +31,17 @@ export class TranscodingService {
       },
     });
   }
-
   remove(id: string) {
     return this.prismService.transcoding.delete({
       where: { id },
     });
   }
-
   createTranscodingsWithVideo(analyzingResult: AnalyzingResult) {
     const transcodings = this.getTranscodings(analyzingResult.quality as any);
-
-    const videoQualities: Prisma.TranscodingCreateWithoutVideoInput[] =
+    const videoQualities: Prisma.TranscodingUncheckedCreateInput[] =
       transcodings.map((quality) => ({
         videoId: analyzingResult.videoId,
-        targetQuality: quality,
+        targetQuality: quality as any,
         status: TranscodingStatus.PENDING,
         progress: 0,
       }));
@@ -57,16 +50,13 @@ export class TranscodingService {
       data: videoQualities as any,
     });
   }
-
   private getTranscodings(quality: VideoQuality): VideoQuality[] {
     if (quality === VideoQuality.Quality144p) {
       return [VideoQuality.Quality144p];
     }
-
     if (quality === VideoQuality.Quality240p) {
       return [VideoQuality.Quality144p, VideoQuality.Quality240p];
     }
-
     if (quality === VideoQuality.Quality360p) {
       return [
         VideoQuality.Quality144p,
@@ -74,7 +64,6 @@ export class TranscodingService {
         VideoQuality.Quality360p,
       ];
     }
-
     if (quality === VideoQuality.Quality480p) {
       return [
         VideoQuality.Quality144p,
@@ -83,7 +72,6 @@ export class TranscodingService {
         VideoQuality.Quality480p,
       ];
     }
-
     if (quality === VideoQuality.Quality720p) {
       return [
         VideoQuality.Quality144p,
@@ -93,7 +81,6 @@ export class TranscodingService {
         VideoQuality.Quality720p,
       ];
     }
-
     if (quality === VideoQuality.Quality1080p) {
       return [
         VideoQuality.Quality144p,
@@ -104,7 +91,6 @@ export class TranscodingService {
         VideoQuality.Quality1080p,
       ];
     }
-
     if (quality === VideoQuality.Quality2160p) {
       return [
         VideoQuality.Quality144p,
@@ -116,7 +102,6 @@ export class TranscodingService {
         VideoQuality.Quality2160p,
       ];
     }
-
     return [];
   }
 }

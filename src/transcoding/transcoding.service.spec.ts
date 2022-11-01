@@ -1,10 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { Prisma } from '@prisma/client';
 import { MongoMemoryReplSet } from 'mongodb-memory-server';
-import { VideoQuality } from '../common/videoQuality';
+import { TranscodingStatus, VideoQuality } from '../common/video';
 import { PrismaService } from '../prisma.service';
 import { VideoService } from '../video/video.service';
-import { TranscodingStatus } from './transcoding.controller';
+
 import { TranscodingService } from './transcoding.service';
 
 describe('TranscodingService', () => {

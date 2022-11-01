@@ -17,7 +17,6 @@ model Video {
   title           String
   url             String?
   thumbnail       String?
-  duration        Int?
   views           Int              @default(0)
   likes           Int              @default(0)
   dislikes        Int              @default(0)
