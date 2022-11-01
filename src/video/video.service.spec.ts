@@ -7,21 +7,30 @@ import { PrismaService } from '../prisma.service';
 describe('VideoService', () => {
   let service: VideoService;
   let mongod: MongoMemoryReplSet;
+  let prisma: PrismaService;
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     mongod = await MongoMemoryReplSet.create({
       replSet: { count: 1, storageEngine: 'wiredTiger' },
     });
+  });
+
+  afterAll(async () => {
+    await mongod.stop();
+  });
+
+  beforeEach(async () => {
     process.env.DATABASE_URL = mongod.getUri('video');
     const module: TestingModule = await Test.createTestingModule({
       providers: [VideoService, PrismaService],
     }).compile();
 
     service = module.get<VideoService>(VideoService);
+    prisma = module.get<PrismaService>(PrismaService);
   });
 
   afterEach(async () => {
-    await mongod.stop();
+    await prisma.video.deleteMany();
   });
 
   it('Should be able to create a video', async () => {

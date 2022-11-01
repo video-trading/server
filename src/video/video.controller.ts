@@ -9,8 +9,9 @@ import {
 } from '@nestjs/common';
 import { Prisma, Video } from '@prisma/client';
 import { Pagination } from 'src/common/types';
+import { TranscodingService } from '../transcoding/transcoding.service';
 import { StorageService } from '../storage/storage.service';
-import { config } from '../config/config';
+import { config } from '../utils/config/config';
 import { VideoService } from './video.service';
 
 @Controller('video')
@@ -18,6 +19,7 @@ export class VideoController {
   constructor(
     private readonly videoService: VideoService,
     private readonly storageService: StorageService,
+    private readonly transcodingService: TranscodingService,
   ) {}
 
   @Post()
@@ -62,5 +64,22 @@ export class VideoController {
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.videoService.remove(id);
+  }
+
+  @Post(':id/analyzing/result')
+  async submitAnalyingResult(
+    @Param('id') id: string,
+    @Body() result: Prisma.AnalyzingResultCreateInput,
+  ) {
+    const analyzingResult = await this.videoService.submitAnalyzingResult(
+      id,
+      result,
+    );
+    const transodings =
+      await this.transcodingService.createTranscodingsWithVideo(
+        analyzingResult,
+      );
+
+    return transodings;
   }
 }

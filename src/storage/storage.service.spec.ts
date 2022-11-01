@@ -3,7 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { StorageService } from './storage.service';
 
 jest.mock('aws-sdk', () => ({
-  S3: require('../test-utils/aws-sdk.mock').S3,
+  S3: require('../utils/test-utils/aws-sdk.mock').S3,
 }));
 
 describe('StorageService', () => {
