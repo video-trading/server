@@ -34,9 +34,8 @@ export class VideoController {
     @Body() video: CreateVideoDto,
   ): Promise<{ video: Video; preSignedURL: string }> {
     const createdVideo = await this.videoService.create(video);
-    const preSignedURL = await this.storageService.generatePreSignedUrl(
-      createdVideo,
-    );
+    const preSignedURL =
+      await this.storageService.generatePreSignedUrlForUpload(createdVideo);
     return {
       video: createdVideo,
       preSignedURL,

@@ -15,6 +15,7 @@ model Video {
   createdAt       DateTime         @default(now())
   updatedAt       DateTime?        @updatedAt
   title           String
+  fileName        String
   url             String?
   thumbnail       String?
   views           Int              @default(0)
