@@ -15,6 +15,7 @@ model Video {
   createdAt       DateTime         @default(now())
   updatedAt       DateTime?        @updatedAt
   title           String
+  fileName        String
   url             String?
   thumbnail       String?
   views           Int              @default(0)
@@ -53,4 +54,7 @@ model Transcoding {
   status        String
   progress      Int
   url           String?
+
+  // unique together with videoId and targetQuality
+  @@unique([videoId, targetQuality])
 }

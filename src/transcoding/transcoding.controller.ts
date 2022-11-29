@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Param, Patch } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiBody, ApiTags } from '@nestjs/swagger';
 import { TranscodingStatus } from '../common/video';
+import { UpdateTranscodingDto } from './dto/update-transcoding.dto';
 import { TranscodingService } from './transcoding.service';
 
 @Controller('transcoding')
@@ -13,7 +14,10 @@ export class TranscodingController {
     return this.transcodingService.findAll(videoId);
   }
   @Patch(':id')
-  update(@Param('videoId') id: string, @Body() result: TranscodingStatus) {
+  @ApiBody({
+    description: 'Update transcoding status by video id and video quality',
+  })
+  update(@Param('videoId') id: string, @Body() result: UpdateTranscodingDto) {
     return this.transcodingService.update(id, result);
   }
 }

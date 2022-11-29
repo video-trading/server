@@ -55,6 +55,7 @@ describe('VideoController', () => {
   it('Should be able to CRUD', async () => {
     const video: Prisma.VideoCreateInput = {
       title: 'Test Video',
+      fileName: 'test-video.mp4',
       createdAt: undefined,
       updatedAt: undefined,
       url: '',
@@ -86,6 +87,7 @@ describe('VideoController', () => {
       views: 0,
       likes: 0,
       dislikes: 0,
+      fileName: 'test-video.mp4',
     };
 
     const result = await controller.create(video);

@@ -4,4 +4,7 @@ import { Prisma } from '@prisma/client';
 export class CreateVideoDto implements Prisma.VideoCreateInput {
   @ApiProperty()
   title: string;
+
+  @ApiProperty()
+  fileName: string;
 }
