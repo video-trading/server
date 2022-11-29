@@ -17,6 +17,7 @@ import { InjectAMQPChannel } from '@enriqcg/nestjs-amqp';
 import { Channel } from 'amqplib';
 import { ApiCreatedResponse, ApiTags } from '@nestjs/swagger';
 import { CreateVideoDto } from './dto/create-video.dto';
+import { CreateAnalyzingResult } from './dto/create-analyzing.dto';
 
 @Controller('video')
 @ApiTags('video')
@@ -47,6 +48,10 @@ export class VideoController {
   @Post(':id/analyzing')
   async startAnalyzing(@Param('id') id: string) {
     const video = await this.videoService.findOne(id);
+    const exist = await this.storageService.checkIfVideoExists(video);
+    if (!exist) {
+      throw new Error('Video not found');
+    }
     const success = this.amqpChannel.publish(
       'video',
       'analyzing',
@@ -93,7 +98,7 @@ export class VideoController {
   })
   async submitAnalyingResult(
     @Param('id') id: string,
-    @Body() result: Prisma.AnalyzingResultCreateInput,
+    @Body() result: CreateAnalyzingResult,
   ) {
     const analyzingResult = await this.videoService.submitAnalyzingResult(
       id,

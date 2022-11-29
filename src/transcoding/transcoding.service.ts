@@ -30,7 +30,23 @@ export class TranscodingService {
     });
   }
 
-  update(id: string, status: UpdateTranscodingDto) {
+  async update(id: string, status: UpdateTranscodingDto) {
+    if (status.status === TranscodingStatus.COMPLETED) {
+      const video = await this.prismService.video.findUnique({
+        where: {
+          id: id,
+        },
+      });
+
+      const exists = await this.storageService.checkIfTranscodedVideoExists(
+        video,
+        status.quality,
+      );
+      if (!exists) {
+        throw new Error('Transcoded video does not exist');
+      }
+    }
+
     return this.prismService.transcoding.update({
       where: {
         videoId_targetQuality: {

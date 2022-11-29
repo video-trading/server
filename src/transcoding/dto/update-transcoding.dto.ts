@@ -5,6 +5,9 @@ export class UpdateTranscodingDto {
   @ApiProperty()
   quality: VideoQuality;
 
-  @ApiProperty()
+  @ApiProperty({
+    description: 'Transcoding status',
+    enum: TranscodingStatus,
+  })
   status: TranscodingStatus;
 }

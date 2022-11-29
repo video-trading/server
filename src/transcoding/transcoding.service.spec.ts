@@ -5,8 +5,28 @@ import { StorageService } from '../storage/storage.service';
 import { TranscodingStatus, VideoQuality } from '../common/video';
 import { PrismaService } from '../prisma.service';
 import { VideoService } from '../video/video.service';
-
 import { TranscodingService } from './transcoding.service';
+
+jest.mock('@aws-sdk/client-s3', () => {
+  return {
+    HeadObjectCommand: jest.fn().mockImplementation(),
+    PutObjectCommand: jest.fn().mockImplementation(),
+    S3Client: jest.fn().mockImplementation(() => {
+      return {
+        send: jest.fn().mockImplementation(),
+      };
+    }),
+  };
+});
+
+jest.mock('@aws-sdk/s3-request-presigner', () => {
+  return {
+    getSignedUrl: jest
+      .fn()
+      .mockImplementation()
+      .mockReturnValue('https://example.com'),
+  };
+});
 
 describe('TranscodingService', () => {
   let service: TranscodingService;
@@ -70,7 +90,7 @@ describe('TranscodingService', () => {
     expect(updatedTranscoding.status).toBe(TranscodingStatus.COMPLETED);
   });
 
-  it('Should be able to create multiple transcodings', async () => {
+  it('Should be able to create multiple transcoding', async () => {
     const video: Prisma.VideoCreateInput = {
       title: 'Test Video',
       url: '',
