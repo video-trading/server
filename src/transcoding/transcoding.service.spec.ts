@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { Prisma } from '@prisma/client';
 import { MongoMemoryReplSet } from 'mongodb-memory-server';
+import { StorageService } from '../storage/storage.service';
 import { TranscodingStatus, VideoQuality } from '../common/video';
 import { PrismaService } from '../prisma.service';
 import { VideoService } from '../video/video.service';
@@ -25,7 +26,7 @@ describe('TranscodingService', () => {
   beforeEach(async () => {
     process.env.DATABASE_URL = mongod.getUri('video');
     const module: TestingModule = await Test.createTestingModule({
-      providers: [TranscodingService, PrismaService],
+      providers: [TranscodingService, PrismaService, StorageService],
     }).compile();
 
     service = module.get<TranscodingService>(TranscodingService);
@@ -62,10 +63,10 @@ describe('TranscodingService', () => {
     const transcodings = await service.findAll(createdVideo.id);
     expect(transcodings).toHaveLength(1);
 
-    const updatedTranscoding = await service.update(
-      transcodings[0].id,
-      TranscodingStatus.COMPLETED,
-    );
+    const updatedTranscoding = await service.update(createdVideo.id, {
+      quality: VideoQuality.Quality144p,
+      status: TranscodingStatus.COMPLETED,
+    });
     expect(updatedTranscoding.status).toBe(TranscodingStatus.COMPLETED);
   });
 
@@ -88,6 +89,6 @@ describe('TranscodingService', () => {
       quality: VideoQuality.Quality360p,
     } as any);
 
-    expect(transcodings.count).toBe(3);
+    expect(transcodings.length).toBe(3);
   });
 });

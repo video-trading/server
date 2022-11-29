@@ -35,7 +35,9 @@ export class VideoController {
   ): Promise<{ video: Video; preSignedURL: string }> {
     const createdVideo = await this.videoService.create(video);
     const preSignedURL =
-      await this.storageService.generatePreSignedUrlForUpload(createdVideo);
+      await this.storageService.generatePreSignedUrlForVideoUpload(
+        createdVideo,
+      );
     return {
       video: createdVideo,
       preSignedURL,
@@ -101,7 +103,11 @@ export class VideoController {
       await this.transcodingService.createTranscodingsWithVideo(
         analyzingResult,
       );
-
+    this.amqpChannel.publish(
+      'video',
+      'transcoding',
+      Buffer.from(JSON.stringify(transodings)),
+    );
     return transodings;
   }
 }

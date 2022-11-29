@@ -16,4 +16,10 @@ jobs:
           version: 7.1.5
       - run: pnpm install
       - run: pnpm test
+        env:
+          SERVER_AWS_REGION: sgp1
+          SERVER_AWS_BUCKET_NAME: video
+          SERVER_AWS_ACCESS_KEY_ID: key
+          SERVER_AWS_SECRET_ACCESS_KEY: secret
+
       - run: pnpm build

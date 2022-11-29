@@ -62,4 +62,26 @@ export class VideoService {
       },
     });
   }
+
+  /**
+   * Submit a transcoding result to a video
+   * @param id Video id
+   * @param result Video transcoding result
+   * @returns Video transcoding result
+   */
+  async submitTranscodingResult(
+    id: string,
+    result: Prisma.TranscodingCreateInput,
+  ) {
+    return await this.prisma.transcoding.create({
+      data: {
+        ...result,
+        video: {
+          connect: {
+            id,
+          },
+        },
+      },
+    });
+  }
 }

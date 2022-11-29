@@ -20,7 +20,7 @@ describe('StorageService', () => {
   });
 
   it('should be defined', () => {
-    const preSignedURL = service.generatePreSignedUrlForUpload({
+    const preSignedURL = service.generatePreSignedUrlForVideoUpload({
       id: '1',
       title: 'test',
       url: 'test',

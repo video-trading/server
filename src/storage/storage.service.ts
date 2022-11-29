@@ -2,6 +2,7 @@ import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { Injectable } from '@nestjs/common';
 import { Video } from '@prisma/client';
+import { VideoQuality } from 'src/common/video';
 
 @Injectable()
 export class StorageService {
@@ -18,7 +19,7 @@ export class StorageService {
     });
   }
 
-  async generatePreSignedUrlForUpload(video: Video) {
+  async generatePreSignedUrlForVideoUpload(video: Video) {
     const params = {
       Bucket: process.env.SERVER_AWS_BUCKET_NAME,
       Key: `Video/${video.id}/${video.fileName}`,
@@ -26,6 +27,19 @@ export class StorageService {
 
     const command = new PutObjectCommand(params);
 
+    return getSignedUrl(this.s3, command, { expiresIn: 60 * 60 });
+  }
+
+  async generatePreSignedUrlForTranscodingUpload(
+    video: Video,
+    quality: VideoQuality,
+  ) {
+    const params = {
+      Bucket: process.env.SERVER_AWS_BUCKET_NAME,
+      Key: `Transcoding/${video.id}/${quality}/${video.fileName}`,
+    };
+
+    const command = new PutObjectCommand(params);
     return getSignedUrl(this.s3, command, { expiresIn: 60 * 60 });
   }
 }
