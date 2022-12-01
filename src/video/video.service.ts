@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { AnalyzingResult, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
 import { config } from '../utils/config/config';
+import { CreateAnalyzingResult } from './dto/create-analyzing.dto';
 
 @Injectable()
 export class VideoService {
@@ -49,7 +50,7 @@ export class VideoService {
 
   async submitAnalyzingResult(
     id: string,
-    result: Prisma.AnalyzingResultCreateInput,
+    result: CreateAnalyzingResult,
   ): Promise<AnalyzingResult> {
     return await this.prisma.analyzingResult.create({
       data: {
