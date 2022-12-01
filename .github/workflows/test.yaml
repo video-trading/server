@@ -16,10 +16,13 @@ jobs:
           version: 7.1.5
       - run: pnpm install
       - run: pnpm test
+        name: Running tests
         env:
           SERVER_AWS_REGION: sgp1
           SERVER_AWS_BUCKET_NAME: video
           SERVER_AWS_ACCESS_KEY_ID: key
           SERVER_AWS_SECRET_ACCESS_KEY: secret
-
+      - run: pnpm test:e2e
+        name: Running e2e tests
       - run: pnpm build
+        name: Building project

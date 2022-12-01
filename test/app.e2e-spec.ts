@@ -3,6 +3,7 @@ import { INestApplication } from '@nestjs/common';
 import * as request from 'supertest';
 import { AppModule } from './../src/app.module';
 import { MongoMemoryReplSet } from 'mongodb-memory-server';
+import { response } from 'express';
 
 jest.mock('@aws-sdk/client-s3', () => {
   return {
@@ -13,6 +14,15 @@ jest.mock('@aws-sdk/client-s3', () => {
         send: jest.fn().mockImplementation(),
       };
     }),
+  };
+});
+
+jest.mock('@aws-sdk/s3-request-presigner', () => {
+  return {
+    getSignedUrl: jest
+      .fn()
+      .mockImplementation()
+      .mockReturnValue('https://example.com'),
   };
 });
 
@@ -41,14 +51,18 @@ describe('AppController (e2e)', () => {
     await app.init();
   });
 
-  it('Video Upload Process', () => {
-    return request(app.getHttpServer())
+  it('/video', async () => {
+    const createVideoRequest = await request(app.getHttpServer())
       .post('/video')
       .send({
         title: 'Test Video',
         fileName: 'test.mov',
       })
-      .expect(200)
-      .expect('Hello World!');
+      .expect(201)
+      .expect((response) => {
+        expect(response.body.video).toHaveProperty('id');
+        expect(response.body.video).toHaveProperty('title', 'Test Video');
+        expect(response.body.video).toHaveProperty('fileName', 'test.mov');
+      });
   });
 });

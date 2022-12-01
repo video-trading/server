@@ -1,6 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Prisma } from '@prisma/client';
-import { VideoQuality } from 'src/common/video';
+import { VideoQuality } from '../../common/video';
 
 export class CreateAnalyzingResult {
   @ApiProperty({

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, Injectable } from '@nestjs/common';
 import { Prisma, Video, AnalyzingResult } from '@prisma/client';
 import { StorageService } from '../storage/storage.service';
 import { TranscodingStatus, VideoQuality } from '../common/video';
@@ -32,7 +32,6 @@ export class TranscodingService {
 
   async update(id: string, status: UpdateTranscodingDto) {
     if (status.status === TranscodingStatus.COMPLETED) {
-      console.log('video', id);
       const video = await this.prismService.video.findUnique({
         where: {
           id: id,
@@ -43,7 +42,10 @@ export class TranscodingService {
         status.quality,
       );
       if (!exists) {
-        throw new Error('Transcoded video does not exist');
+        throw new HttpException(
+          "Transcoded video doesn't exist in S3 storage",
+          400,
+        );
       }
     }
 

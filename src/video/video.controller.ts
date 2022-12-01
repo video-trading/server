@@ -6,6 +6,7 @@ import {
   Patch,
   Param,
   Delete,
+  HttpException,
 } from '@nestjs/common';
 import { Prisma, Video, Transcoding } from '@prisma/client';
 import { Pagination } from 'src/common/types';
@@ -50,7 +51,7 @@ export class VideoController {
     const video = await this.videoService.findOne(id);
     const exist = await this.storageService.checkIfVideoExists(video);
     if (!exist) {
-      throw new Error('Video not found');
+      throw new HttpException("Video doesn't exist", 400);
     }
     const success = this.amqpChannel.publish(
       'video',
