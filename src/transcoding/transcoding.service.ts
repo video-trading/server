@@ -32,12 +32,12 @@ export class TranscodingService {
 
   async update(id: string, status: UpdateTranscodingDto) {
     if (status.status === TranscodingStatus.COMPLETED) {
+      console.log('video', id);
       const video = await this.prismService.video.findUnique({
         where: {
           id: id,
         },
       });
-
       const exists = await this.storageService.checkIfTranscodedVideoExists(
         video,
         status.quality,
