@@ -7,12 +7,13 @@ import { StorageModule } from './storage/storage.module';
 import { TranscodingModule } from './transcoding/transcoding.module';
 import { UserModule } from './user/user.module';
 import { VideoModule } from './video/video.module';
+import { Environments } from './common/environment';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     AMQPModule.forRoot({
-      uri: process.env.RABBITMQ_URI,
+      uri: Environments.rabbit_mq_url,
       assertExchanges: [
         {
           name: 'video',
