@@ -5,6 +5,12 @@ import { LocalStrategy } from './local.strategy';
 import { AuthService } from './auth.service';
 import { JwtService } from '@nestjs/jwt';
 import { UnauthorizedException } from '@nestjs/common';
+import { BlockchainService } from '../blockchain/blockchain.service';
+
+jest.mock('axios', () => ({
+  get: jest.fn().mockImplementation(),
+  post: jest.fn().mockImplementation().mockReturnValue({ data: {} }),
+}));
 
 describe('Given a local.strategy class', () => {
   let mongod: MongoMemoryReplSet;
@@ -15,8 +21,8 @@ describe('Given a local.strategy class', () => {
       replSet: { count: 1, storageEngine: 'wiredTiger' },
     });
     process.env.DATABASE_URL = mongod.getUri('video');
-    userService = new UserService(new PrismaService());
-    const user = await userService.create({
+    userService = new UserService(new PrismaService(), new BlockchainService());
+    await userService.create({
       email: '',
       name: '',
       password: 'password',

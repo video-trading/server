@@ -10,16 +10,29 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Wallet {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  address    String   @unique
+  privateKey String   @unique
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  User       User?
+}
+
 model User {
-  id        String     @id @default(auto()) @map("_id") @db.ObjectId
-  email     String     @unique
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  email     String   @unique
   name      String?
-  username  String     @unique
+  username  String   @unique
   password  String
-  videos    Video[]
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-  Playlist  Playlist[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  Playlist Playlist[]
+  Videos   Video[]
+
+  Wallet   Wallet @relation(fields: [walletId], references: [id])
+  walletId String @unique @db.ObjectId
 }
 
 model Playlist {
@@ -47,9 +60,9 @@ model Video {
   comments        Comment[]
   transcoding     Transcoding[]
   analyzingResult AnalyzingResult?
-  user            User             @relation(fields: [userId], references: [id])
+  User            User             @relation(fields: [userId], references: [id])
   userId          String
-  playlist        Playlist?        @relation(fields: [playlistId], references: [id])
+  Playlist        Playlist?        @relation(fields: [playlistId], references: [id])
   playlistId      String?          @db.ObjectId
 }
 
@@ -58,7 +71,7 @@ model Comment {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   text      String
-  video     Video    @relation(fields: [videoId], references: [id])
+  Video     Video    @relation(fields: [videoId], references: [id])
   videoId   String
 }
 
@@ -67,7 +80,7 @@ model AnalyzingResult {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   quality   String
-  video     Video    @relation(fields: [videoId], references: [id])
+  Video     Video    @relation(fields: [videoId], references: [id])
   videoId   String   @unique @db.ObjectId
 }
 
@@ -75,7 +88,7 @@ model Transcoding {
   id            String   @id @default(auto()) @map("_id") @db.ObjectId
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
-  video         Video    @relation(fields: [videoId], references: [id])
+  Video         Video    @relation(fields: [videoId], references: [id])
   targetQuality String
   videoId       String
   status        String

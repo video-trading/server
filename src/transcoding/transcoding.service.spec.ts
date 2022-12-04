@@ -7,6 +7,7 @@ import { PrismaService } from '../prisma.service';
 import { VideoService } from '../video/video.service';
 import { TranscodingService } from './transcoding.service';
 import { CreateVideoDto } from '../video/dto/create-video.dto';
+import { BlockchainService } from '../blockchain/blockchain.service';
 
 jest.mock('@aws-sdk/client-s3', () => {
   return {
@@ -48,7 +49,12 @@ describe('TranscodingService', () => {
   beforeEach(async () => {
     process.env.DATABASE_URL = mongod.getUri('video');
     const module: TestingModule = await Test.createTestingModule({
-      providers: [TranscodingService, PrismaService, StorageService],
+      providers: [
+        TranscodingService,
+        PrismaService,
+        StorageService,
+        BlockchainService,
+      ],
     }).compile();
 
     service = module.get<TranscodingService>(TranscodingService);
@@ -60,6 +66,12 @@ describe('TranscodingService', () => {
         password: 'password',
         name: 'abc',
         username: 'abc',
+        Wallet: {
+          create: {
+            address: '0x123',
+            privateKey: '0x123',
+          },
+        },
       },
     });
 

@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { AnalyzingResult, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
-import { config } from '../utils/config/config';
+import { config } from '../common/utils/config/config';
 import { CreateAnalyzingResult } from './dto/create-analyzing.dto';
 import { CreateVideoDto } from './dto/create-video.dto';
 
@@ -13,7 +13,7 @@ export class VideoService {
     return this.prisma.video.create({
       data: {
         ...video,
-        user: {
+        User: {
           connect: {
             id: user,
           },
@@ -65,7 +65,7 @@ export class VideoService {
     return await this.prisma.analyzingResult.create({
       data: {
         ...result,
-        video: {
+        Video: {
           connect: {
             id,
           },
@@ -87,7 +87,7 @@ export class VideoService {
     return await this.prisma.transcoding.create({
       data: {
         ...result,
-        video: {
+        Video: {
           connect: {
             id,
           },

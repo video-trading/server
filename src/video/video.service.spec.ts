@@ -4,6 +4,7 @@ import { MongoMemoryReplSet } from 'mongodb-memory-server';
 import { PrismaService } from '../prisma.service';
 import { AMQPModule } from '@enriqcg/nestjs-amqp';
 import { CreateVideoDto } from './dto/create-video.dto';
+import { BlockchainService } from '../blockchain/blockchain.service';
 
 describe('VideoService', () => {
   let service: VideoService;
@@ -26,7 +27,7 @@ describe('VideoService', () => {
     process.env.DATABASE_URL = mongod.getUri('video');
     const module: TestingModule = await Test.createTestingModule({
       imports: [AMQPModule.forRoot({})],
-      providers: [VideoService, PrismaService],
+      providers: [VideoService, PrismaService, BlockchainService],
     }).compile();
 
     service = module.get<VideoService>(VideoService);
@@ -38,6 +39,12 @@ describe('VideoService', () => {
         password: 'password',
         name: 'abc',
         username: 'abc',
+        Wallet: {
+          create: {
+            privateKey: 'privateKey',
+            address: 'address',
+          },
+        },
       },
     });
 

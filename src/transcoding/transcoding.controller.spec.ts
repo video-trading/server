@@ -58,6 +58,12 @@ describe('TranscodingController', () => {
         password: 'password',
         name: 'abc',
         username: 'abc',
+        Wallet: {
+          create: {
+            address: '0x123',
+            privateKey: '0x123',
+          },
+        },
       },
     });
 

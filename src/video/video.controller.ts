@@ -14,7 +14,7 @@ import { Prisma, Video } from '@prisma/client';
 import { Pagination } from '../common/types';
 import { TranscodingService } from '../transcoding/transcoding.service';
 import { StorageService } from '../storage/storage.service';
-import { config } from '../utils/config/config';
+import { config } from '../common/utils/config/config';
 import { VideoService } from './video.service';
 import { InjectAMQPChannel } from '@enriqcg/nestjs-amqp';
 import { Channel } from 'amqplib';
