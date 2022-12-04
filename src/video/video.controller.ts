@@ -1,15 +1,17 @@
 import {
-  Controller,
-  Get,
-  Post,
   Body,
-  Patch,
-  Param,
+  Controller,
   Delete,
+  Get,
   HttpException,
+  Param,
+  Patch,
+  Post,
+  UseGuards,
+  Request,
 } from '@nestjs/common';
-import { Prisma, Video, Transcoding } from '@prisma/client';
-import { Pagination } from 'src/common/types';
+import { Prisma, Video } from '@prisma/client';
+import { Pagination } from '../common/types';
 import { TranscodingService } from '../transcoding/transcoding.service';
 import { StorageService } from '../storage/storage.service';
 import { config } from '../utils/config/config';
@@ -19,6 +21,7 @@ import { Channel } from 'amqplib';
 import { ApiCreatedResponse, ApiTags } from '@nestjs/swagger';
 import { CreateVideoDto } from './dto/create-video.dto';
 import { CreateAnalyzingResult } from './dto/create-analyzing.dto';
+import { JwtAuthGuard } from '../auth/jwt-auth-guard';
 
 @Controller('video')
 @ApiTags('video')
@@ -32,10 +35,15 @@ export class VideoController {
   ) {}
 
   @Post()
+  @UseGuards(JwtAuthGuard)
+  @ApiCreatedResponse({
+    description: 'Create a new video',
+  })
   async create(
     @Body() video: CreateVideoDto,
+    @Request() req,
   ): Promise<{ video: Video; preSignedURL: string }> {
-    const createdVideo = await this.videoService.create(video);
+    const createdVideo = await this.videoService.create(video, req.user.userId);
     const preSignedURL =
       await this.storageService.generatePreSignedUrlForVideoUpload(
         createdVideo,

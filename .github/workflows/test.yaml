@@ -24,6 +24,8 @@ jobs:
           SERVER_AWS_SECRET_ACCESS_KEY: secret
       - run: pnpm test:e2e
         name: Running e2e tests
+        env:
+          JWT_SECRET: secret
       - run: pnpm build
         name: Building project
   create-release:

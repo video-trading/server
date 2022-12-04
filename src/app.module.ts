@@ -8,6 +8,8 @@ import { TranscodingModule } from './transcoding/transcoding.module';
 import { UserModule } from './user/user.module';
 import { VideoModule } from './video/video.module';
 import { Environments } from './common/environment';
+import { AuthService } from './auth/auth.service';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -21,6 +23,7 @@ import { Environments } from './common/environment';
         },
       ],
     }),
+    AuthModule,
     VideoModule,
     StorageModule,
     TranscodingModule,

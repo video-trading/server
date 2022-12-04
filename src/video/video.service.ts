@@ -3,13 +3,23 @@ import { AnalyzingResult, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
 import { config } from '../utils/config/config';
 import { CreateAnalyzingResult } from './dto/create-analyzing.dto';
+import { CreateVideoDto } from './dto/create-video.dto';
 
 @Injectable()
 export class VideoService {
   constructor(private prisma: PrismaService) {}
 
-  create(video: Prisma.VideoCreateInput) {
-    return this.prisma.video.create({ data: video });
+  create(video: CreateVideoDto, user: string) {
+    return this.prisma.video.create({
+      data: {
+        ...video,
+        user: {
+          connect: {
+            id: user,
+          },
+        },
+      },
+    });
   }
 
   findAll(page: number, limit: number = config.numberOfItemsPerPage) {
