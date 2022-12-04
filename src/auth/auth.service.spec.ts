@@ -2,8 +2,13 @@ import { AuthService } from './auth.service';
 import { UserService } from '../user/user.service';
 import { PrismaService } from '../prisma.service';
 import { JwtService } from '@nestjs/jwt';
-import { VideoController } from '../video/video.controller';
 import { MongoMemoryReplSet } from 'mongodb-memory-server';
+import { BlockchainService } from '../blockchain/blockchain.service';
+
+jest.mock('axios', () => ({
+  get: jest.fn().mockImplementation(),
+  post: jest.fn().mockImplementation().mockReturnValue({ data: {} }),
+}));
 
 describe('Given a auth service', function () {
   let userService: UserService;
@@ -16,7 +21,7 @@ describe('Given a auth service', function () {
 
     process.env.DATABASE_URL = mongod.getUri('video');
     const prisma = new PrismaService();
-    userService = new UserService(prisma);
+    userService = new UserService(prisma, new BlockchainService());
   });
 
   afterAll(async () => {

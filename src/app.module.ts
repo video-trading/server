@@ -8,8 +8,8 @@ import { TranscodingModule } from './transcoding/transcoding.module';
 import { UserModule } from './user/user.module';
 import { VideoModule } from './video/video.module';
 import { Environments } from './common/environment';
-import { AuthService } from './auth/auth.service';
 import { AuthModule } from './auth/auth.module';
+import { BlockchainService } from './blockchain/blockchain.service';
 
 @Module({
   imports: [
@@ -30,6 +30,6 @@ import { AuthModule } from './auth/auth.module';
     UserModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, BlockchainService],
 })
 export class AppModule {}

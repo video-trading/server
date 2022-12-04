@@ -52,6 +52,12 @@ describe('VideoController', () => {
         password: 'password',
         name: 'abc',
         username: 'abc',
+        Wallet: {
+          create: {
+            privateKey: 'privateKey',
+            address: 'address',
+          },
+        },
       },
     });
 

@@ -5,8 +5,12 @@ import { AppModule } from '../src/app.module';
 import { MongoMemoryReplSet } from 'mongodb-memory-server';
 import jwt from 'jsonwebtoken';
 import { Environments } from '../src/common/environment';
-import { PrismaService } from '../src/prisma.service';
 import { UserService } from '../src/user/user.service';
+
+jest.mock('axios', () => ({
+  get: jest.fn().mockImplementation(),
+  post: jest.fn().mockImplementation().mockReturnValue({ data: {} }),
+}));
 
 jest.mock('@aws-sdk/client-s3', () => {
   return {

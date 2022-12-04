@@ -8,6 +8,7 @@ import { UserService } from '../user/user.service';
 import { AuthController } from './auth.controller';
 import { LocalStrategy } from './local.strategy';
 import { PrismaService } from '../prisma.service';
+import { BlockchainService } from '../blockchain/blockchain.service';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { PrismaService } from '../prisma.service';
     UserService,
     LocalStrategy,
     PrismaService,
+    BlockchainService,
   ],
   exports: [AuthService],
   controllers: [AuthController],
