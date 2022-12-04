@@ -1,6 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { ethers } from 'ethers';
 import axios from 'axios';
+import { Environments } from '../common/environment';
 
 @Injectable()
 export class BlockchainService {
@@ -17,10 +18,17 @@ export class BlockchainService {
    * @param for_wallet
    */
   async requestMoney(for_wallet: string) {
-    const faucetUrl = 'https://faucet.debugchain.net/api/request_money';
-    const response = await axios.post(faucetUrl, {
-      walletAddress: for_wallet,
-    });
-    return response.data;
+    try {
+      const faucetUrl = Environments.faucet_url;
+      const response = await axios.post(faucetUrl, {
+        walletAddress: for_wallet,
+      });
+      return response.data;
+    } catch (e) {
+      throw new InternalServerErrorException(
+        null,
+        'Error requesting money from faucet',
+      );
+    }
   }
 }

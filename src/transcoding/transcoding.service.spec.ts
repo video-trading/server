@@ -85,7 +85,6 @@ describe('TranscodingService', () => {
   it('should be able to crud', async () => {
     const video: CreateVideoDto = {
       title: 'Test Video',
-      url: '',
       fileName: 'test-video.mp4',
       description: '',
     };
@@ -115,7 +114,6 @@ describe('TranscodingService', () => {
   it('Should be able to create multiple transcoding', async () => {
     const video: CreateVideoDto = {
       title: 'Test Video',
-      url: '',
       fileName: 'test-video.mp4',
       description: '',
     };

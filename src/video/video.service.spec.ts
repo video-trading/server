@@ -60,7 +60,6 @@ describe('VideoService', () => {
   it('Should be able to create a video', async () => {
     const video: CreateVideoDto = {
       title: 'Test Video',
-      url: '',
       fileName: 'test-video.mp4',
       description: '',
     };
@@ -72,7 +71,6 @@ describe('VideoService', () => {
   it('Should be able to update video', async () => {
     const video: CreateVideoDto = {
       title: 'Test Video',
-      url: '',
       fileName: 'test-video.mp4',
       description: '',
     };
@@ -91,7 +89,6 @@ describe('VideoService', () => {
   it('Should be able to delete video', async () => {
     const video: CreateVideoDto = {
       title: 'Test Video',
-      url: '',
       fileName: 'test-video.mp4',
       description: '',
     };
@@ -108,7 +105,6 @@ describe('VideoService', () => {
   it('Should not be able to delete video', async () => {
     const video: CreateVideoDto = {
       title: 'Test Video',
-      url: '',
       fileName: 'test-video.mp4',
       description: '',
     };

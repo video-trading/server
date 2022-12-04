@@ -2,8 +2,10 @@ import { Body, Controller, Post, UseGuards, Request } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LocalAuthGuard } from './local-auth.guard';
 import { CreateUserDto } from '../user/dto/create-user.dto';
+import { ApiBody, ApiResponse, ApiTags } from '@nestjs/swagger';
 
 @Controller('auth')
+@ApiTags('auth')
 export class AuthController {
   constructor(private authService: AuthService) {
     // eslint-disable-next-line prettier/prettier
@@ -23,7 +25,54 @@ export class AuthController {
 
   @UseGuards(LocalAuthGuard)
   @Post('signIn')
-  async login(@Request() req): Promise<{ user: any; accessToken: string }> {
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        username: {
+          type: 'string',
+        },
+        password: {
+          type: 'string',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Signed in',
+    schema: {
+      type: 'object',
+      properties: {
+        user: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'string',
+            },
+            username: {
+              type: 'string',
+            },
+            name: {
+              type: 'string',
+            },
+            Wallet: {
+              type: 'object',
+              properties: {
+                address: {
+                  type: 'string',
+                },
+              },
+            },
+          },
+        },
+        accessToken: {
+          type: 'string',
+        },
+      },
+    },
+  })
+  async signIn(@Request() req): Promise<{ user: any; accessToken: string }> {
     const loginedUser = await this.authService.accessToken(req.user);
     return {
       user: req.user,

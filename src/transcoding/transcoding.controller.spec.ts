@@ -83,7 +83,6 @@ describe('TranscodingController', () => {
   it('should be able to update a video with id defined', async () => {
     const video: CreateVideoDto = {
       title: 'Test Video',
-      url: '',
       fileName: 'test-video.mp4',
       description: '',
     };

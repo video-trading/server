@@ -87,11 +87,22 @@ export class UserService {
     });
   }
 
-  findOneBy(username: string) {
-    return this.prisma.user.findUnique({
+  async findOneBy(username: string) {
+    const user = await this.prisma.user.findUnique({
       where: {
         username,
       },
+      include: {
+        Wallet: true,
+      },
     });
+
+    return {
+      ...user,
+      Wallet: {
+        ...user.Wallet,
+        privateKey: undefined,
+      },
+    };
   }
 }

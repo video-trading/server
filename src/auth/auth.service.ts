@@ -13,7 +13,6 @@ export class AuthService {
   }
 
   async validateUser(username: string, password: string) {
-    console.log('validateUser', username, password);
     const user = await this.userService.findOneBy(username);
     const isMatched = await this.userService.comparePassword(
       password,
@@ -27,7 +26,7 @@ export class AuthService {
   }
 
   async accessToken(user: any) {
-    const payload = { username: user.username, userId: user.userId };
+    const payload = { username: user.username, userId: user.id };
     return this.jwtService.sign(payload);
   }
 
