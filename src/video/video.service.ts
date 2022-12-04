@@ -1,9 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { AnalyzingResult, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
-import { config } from '../common/utils/config/config';
 import { CreateAnalyzingResult } from './dto/create-analyzing.dto';
 import { CreateVideoDto } from './dto/create-video.dto';
+import { config } from '../common/utils/config/config';
 
 @Injectable()
 export class VideoService {
@@ -46,7 +46,17 @@ export class VideoService {
     });
   }
 
-  remove(id: string) {
+  async remove(id: string, userId: string) {
+    const video = await this.prisma.video.findUnique({
+      where: {
+        id,
+      },
+    });
+
+    if (video?.userId !== userId) {
+      throw new UnauthorizedException();
+    }
+
     return this.prisma.video.delete({
       where: {
         id,

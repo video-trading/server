@@ -5,6 +5,7 @@ import { PrismaService } from '../prisma.service';
 import { AMQPModule } from '@enriqcg/nestjs-amqp';
 import { CreateVideoDto } from './dto/create-video.dto';
 import { BlockchainService } from '../blockchain/blockchain.service';
+import { UnauthorizedException } from '@nestjs/common';
 
 describe('VideoService', () => {
   let service: VideoService;
@@ -85,5 +86,39 @@ describe('VideoService', () => {
       title: 'Updated Video',
     });
     expect(updatedVideo.title).toBe('Updated Video');
+  });
+
+  it('Should be able to delete video', async () => {
+    const video: CreateVideoDto = {
+      title: 'Test Video',
+      url: '',
+      fileName: 'test-video.mp4',
+      description: '',
+    };
+    await service.create(video, userId);
+
+    const videos = await service.findAll(1);
+    expect(videos).toHaveLength(1);
+    expect(await service.count()).toBe(1);
+
+    await service.remove(videos[0].id, userId);
+    expect(await service.count()).toBe(0);
+  });
+
+  it('Should not be able to delete video', async () => {
+    const video: CreateVideoDto = {
+      title: 'Test Video',
+      url: '',
+      fileName: 'test-video.mp4',
+      description: '',
+    };
+    await service.create(video, userId);
+
+    const videos = await service.findAll(1);
+    expect(videos).toHaveLength(1);
+    expect(await service.count()).toBe(1);
+    await expect(() =>
+      service.remove(videos[0].id, 'randomId'),
+    ).rejects.toThrow();
   });
 });
