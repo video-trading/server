@@ -123,6 +123,7 @@ describe('AppController (e2e)', () => {
     // start analyzing process
     await request(app.getHttpServer())
       .post(`/video/${videoId}/analyzing`)
+      .set('Authorization', `Bearer ${accessKey}`)
       .expect(201)
       .expect((response) => {
         expect(response.body).toHaveProperty('success');
@@ -131,6 +132,7 @@ describe('AppController (e2e)', () => {
     // submit analyzing result
     await request(app.getHttpServer())
       .post(`/video/${videoId}/analyzing/result`)
+      .set('Authorization', `Bearer ${accessKey}`)
       .send({
         quality: '1080p',
       })
@@ -154,6 +156,7 @@ describe('AppController (e2e)', () => {
         status: 'COMPLETED',
         quality: '1080p',
       })
+      .set('Authorization', `Bearer ${accessKey}`)
       .expect(200)
       .expect((response) => {
         expect(response.body.status).toBe('COMPLETED');

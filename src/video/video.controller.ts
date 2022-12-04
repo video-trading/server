@@ -14,7 +14,7 @@ import { Prisma, Video } from '@prisma/client';
 import { Pagination } from '../common/types';
 import { TranscodingService } from '../transcoding/transcoding.service';
 import { StorageService } from '../storage/storage.service';
-import { config } from '../common/utils/config/config';
+
 import { VideoService } from './video.service';
 import { InjectAMQPChannel } from '@enriqcg/nestjs-amqp';
 import { Channel } from 'amqplib';
@@ -22,6 +22,7 @@ import { ApiCreatedResponse, ApiTags } from '@nestjs/swagger';
 import { CreateVideoDto } from './dto/create-video.dto';
 import { CreateAnalyzingResult } from './dto/create-analyzing.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth-guard';
+import { config } from '../common/utils/config/config';
 
 @Controller('video')
 @ApiTags('video')
@@ -54,6 +55,7 @@ export class VideoController {
     };
   }
 
+  @UseGuards(JwtAuthGuard)
   @Post(':id/analyzing')
   async startAnalyzing(@Param('id') id: string) {
     const video = await this.videoService.findOne(id);
@@ -90,16 +92,19 @@ export class VideoController {
     return this.videoService.findOne(id);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Patch(':id')
   update(@Param('id') id: string, @Body() data: Prisma.VideoUpdateInput) {
     return this.videoService.update(id, data);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.videoService.remove(id);
+  remove(@Param('id') id: string, @Request() req) {
+    return this.videoService.remove(id, req.user.userId);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Post(':id/analyzing/result')
   @ApiCreatedResponse({
     description:
