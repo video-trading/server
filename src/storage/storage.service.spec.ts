@@ -31,6 +31,9 @@ describe('StorageService', () => {
       views: 0,
       likes: 0,
       dislikes: 0,
+      description: '',
+      userId: '',
+      playlistId: '',
     });
 
     expect(preSignedURL).toBeDefined();

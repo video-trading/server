@@ -1,14 +1,15 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { VideoService } from './video.service';
 import { MongoMemoryReplSet } from 'mongodb-memory-server';
-import { Prisma, PrismaClient } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
 import { AMQPModule } from '@enriqcg/nestjs-amqp';
+import { CreateVideoDto } from './dto/create-video.dto';
 
 describe('VideoService', () => {
   let service: VideoService;
   let mongod: MongoMemoryReplSet;
   let prisma: PrismaService;
+  let userId: string;
 
   beforeAll(async () => {
     mongod = await MongoMemoryReplSet.create({
@@ -17,6 +18,7 @@ describe('VideoService', () => {
   });
 
   afterAll(async () => {
+    await prisma.$disconnect();
     await mongod.stop();
   });
 
@@ -29,38 +31,44 @@ describe('VideoService', () => {
 
     service = module.get<VideoService>(VideoService);
     prisma = module.get<PrismaService>(PrismaService);
+
+    const user = await prisma.user.create({
+      data: {
+        email: 'abc@abc.com',
+        password: 'password',
+        name: 'abc',
+        username: 'abc',
+      },
+    });
+
+    userId = user.id;
   });
 
   afterEach(async () => {
     await prisma.video.deleteMany();
+    await prisma.user.deleteMany();
   });
 
   it('Should be able to create a video', async () => {
-    const video: Prisma.VideoCreateInput = {
+    const video: CreateVideoDto = {
       title: 'Test Video',
       url: '',
-      thumbnail: '',
       fileName: 'test-video.mp4',
-      views: 0,
-      likes: 0,
-      dislikes: 0,
+      description: '',
     };
-    await service.create(video);
+    await service.create(video, userId);
     const videos = await service.findAll(1);
     expect(videos).toHaveLength(1);
   });
 
   it('Should be able to update video', async () => {
-    const video: Prisma.VideoCreateInput = {
+    const video: CreateVideoDto = {
       title: 'Test Video',
       url: '',
-      thumbnail: '',
       fileName: 'test-video.mp4',
-      views: 0,
-      likes: 0,
-      dislikes: 0,
+      description: '',
     };
-    await service.create(video);
+    await service.create(video, userId);
 
     const videos = await service.findAll(1);
     expect(videos).toHaveLength(1);

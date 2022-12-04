@@ -8,6 +8,7 @@ import { TranscodingStatus, VideoQuality } from '../common/video';
 import { Prisma } from '@prisma/client';
 import { VideoService } from '../video/video.service';
 import { HttpException } from '@nestjs/common';
+import { CreateVideoDto } from '../video/dto/create-video.dto';
 
 jest.mock('@aws-sdk/client-s3', () => {
   return {
@@ -24,6 +25,7 @@ jest.mock('@aws-sdk/client-s3', () => {
 describe('TranscodingController', () => {
   let controller: TranscodingController;
   let mongod: MongoMemoryReplSet;
+  let userId: string;
 
   beforeAll(async () => {
     mongod = await MongoMemoryReplSet.create({
@@ -48,6 +50,18 @@ describe('TranscodingController', () => {
     }).compile();
 
     controller = module.get<TranscodingController>(TranscodingController);
+    const prisma = module.get<PrismaService>(PrismaService);
+
+    const user = await prisma.user.create({
+      data: {
+        email: 'abc@abc.com',
+        password: 'password',
+        name: 'abc',
+        username: 'abc',
+      },
+    });
+
+    userId = user.id;
   });
 
   it('should not be able to update a video with id undefined', async () => {
@@ -61,14 +75,11 @@ describe('TranscodingController', () => {
   });
 
   it('should be able to update a video with id defined', async () => {
-    const video: Prisma.VideoCreateInput = {
+    const video: CreateVideoDto = {
       title: 'Test Video',
       url: '',
-      thumbnail: '',
       fileName: 'test-video.mp4',
-      views: 0,
-      likes: 0,
-      dislikes: 0,
+      description: '',
     };
 
     const videoService = new VideoService(new PrismaService());
@@ -76,7 +87,7 @@ describe('TranscodingController', () => {
       new PrismaService(),
       new StorageService(),
     );
-    const createdVideo = await videoService.create(video);
+    const createdVideo = await videoService.create(video, userId);
 
     const transcoding: Prisma.TranscodingUncheckedCreateInput = {
       status: '',

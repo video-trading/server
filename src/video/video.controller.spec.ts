@@ -1,5 +1,4 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { Prisma } from '@prisma/client';
 import { MongoMemoryReplSet } from 'mongodb-memory-server';
 import { PrismaService } from '../prisma.service';
 import { StorageService } from '../storage/storage.service';
@@ -10,6 +9,7 @@ import { VideoQuality } from '../common/video';
 import { TranscodingService } from '../transcoding/transcoding.service';
 import { VideoController } from './video.controller';
 import { VideoService } from './video.service';
+import { CreateVideoDto } from './dto/create-video.dto';
 
 jest.mock('aws-sdk', () => ({
   S3: require('../utils/test-utils/aws-sdk.mock').S3,
@@ -19,6 +19,7 @@ describe('VideoController', () => {
   let controller: VideoController;
   let mongod: MongoMemoryReplSet;
   let prisma: PrismaService;
+  let userId: string;
 
   beforeAll(async () => {
     mongod = await MongoMemoryReplSet.create({
@@ -44,6 +45,17 @@ describe('VideoController', () => {
     }).compile();
     controller = module.get<VideoController>(VideoController);
     prisma = module.get<PrismaService>(PrismaService);
+
+    const user = await prisma.user.create({
+      data: {
+        email: 'abc@abc.com',
+        password: 'password',
+        name: 'abc',
+        username: 'abc',
+      },
+    });
+
+    userId = user.id;
   });
 
   afterEach(async () => {
@@ -53,19 +65,14 @@ describe('VideoController', () => {
   });
 
   it('Should be able to CRUD', async () => {
-    const video: Prisma.VideoCreateInput = {
+    const video: CreateVideoDto = {
+      description: '',
       title: 'Test Video',
       fileName: 'test-video.mp4',
-      createdAt: undefined,
-      updatedAt: undefined,
       url: '',
-      thumbnail: '',
-      views: 0,
-      likes: 0,
-      dislikes: 0,
     };
 
-    const result = await controller.create(video);
+    const result = await controller.create(video, { user: { userId } });
     expect(result.preSignedURL).toBeDefined();
     const videos = await controller.findAll();
     expect(videos.data).toHaveLength(1);
@@ -78,19 +85,14 @@ describe('VideoController', () => {
   });
 
   it('Should be able to submit transcoding request', async () => {
-    const video: Prisma.VideoCreateInput = {
+    const video: CreateVideoDto = {
+      description: '',
       title: 'Test Video',
-      createdAt: undefined,
-      updatedAt: undefined,
       url: '',
-      thumbnail: '',
-      views: 0,
-      likes: 0,
-      dislikes: 0,
       fileName: 'test-video.mp4',
     };
 
-    const result = await controller.create(video);
+    const result = await controller.create(video, { user: { userId } });
     const analyzeResult: any = {
       quality: VideoQuality.Quality360p,
     };

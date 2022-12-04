@@ -10,20 +10,47 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id        String     @id @default(auto()) @map("_id") @db.ObjectId
+  email     String     @unique
+  name      String?
+  username  String     @unique
+  password  String
+  videos    Video[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  Playlist  Playlist[]
+}
+
+model Playlist {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  videos    Video[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 model Video {
   id              String           @id @default(auto()) @map("_id") @db.ObjectId
   createdAt       DateTime         @default(now())
   updatedAt       DateTime?        @updatedAt
   title           String
   fileName        String
+  description     String
   url             String?
   thumbnail       String?
   views           Int              @default(0)
   likes           Int              @default(0)
   dislikes        Int              @default(0)
   comments        Comment[]
-  Transcoding     Transcoding[]
-  AnalyzingResult AnalyzingResult?
+  transcoding     Transcoding[]
+  analyzingResult AnalyzingResult?
+  user            User             @relation(fields: [userId], references: [id])
+  userId          String
+  playlist        Playlist?        @relation(fields: [playlistId], references: [id])
+  playlistId      String?          @db.ObjectId
 }
 
 model Comment {
