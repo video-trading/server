@@ -7,3 +7,5 @@ dist
 deploy
 serverless_sdk
 s_main.js
+coverage/lcov-report
+coverage

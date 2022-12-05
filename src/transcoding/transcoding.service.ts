@@ -54,11 +54,11 @@ export class TranscodingService {
     }));
   }
 
-  async update(id: string, status: UpdateTranscodingDto) {
+  async update(videoId: string, status: UpdateTranscodingDto) {
     if (status.status === TranscodingStatus.COMPLETED) {
       const video = await this.prismService.video.findUnique({
         where: {
-          id: id,
+          id: videoId,
         },
       });
       const exists = await this.storageService.checkIfTranscodedVideoExists(
@@ -76,7 +76,7 @@ export class TranscodingService {
     return this.prismService.transcoding.update({
       where: {
         videoId_targetQuality: {
-          videoId: id,
+          videoId: videoId,
           targetQuality: status.quality,
         },
       },

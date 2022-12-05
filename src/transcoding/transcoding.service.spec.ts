@@ -13,6 +13,7 @@ jest.mock('@aws-sdk/client-s3', () => {
   return {
     HeadObjectCommand: jest.fn().mockImplementation(),
     PutObjectCommand: jest.fn().mockImplementation(),
+    GetObjectCommand: jest.fn().mockImplementation(),
     S3Client: jest.fn().mockImplementation(() => {
       return {
         send: jest.fn().mockImplementation(),
@@ -133,5 +134,53 @@ describe('TranscodingService', () => {
     } as any);
 
     expect(transcodings.length).toBe(3);
+  });
+
+  it('Should be able to get url when transcoding status is completed', async () => {
+    const video: CreateVideoDto = {
+      title: 'Test Video',
+      fileName: 'test-video.mp4',
+      description: '',
+    };
+
+    const videoService = new VideoService(
+      new PrismaService(),
+      new StorageService(),
+    );
+    const createdVideo = await videoService.create(video, userId);
+    await service.createTranscodingsWithVideo({
+      videoId: createdVideo.id,
+      quality: VideoQuality.Quality360p,
+    } as any);
+
+    let transcodings = await service.findAll(createdVideo.id);
+    expect(transcodings).toHaveLength(3);
+    expect(transcodings[0].url).toBeUndefined();
+
+    await service.update(createdVideo.id, {
+      status: TranscodingStatus.COMPLETED,
+      quality: transcodings[0].targetQuality as any,
+    });
+
+    transcodings = await service.findAll(createdVideo.id);
+    expect(transcodings[0].url).toBeDefined();
+    expect(transcodings[1].url).toBeUndefined();
+
+    await service.update(createdVideo.id, {
+      status: TranscodingStatus.COMPLETED,
+      quality: transcodings[1].targetQuality as any,
+    });
+
+    transcodings = await service.findAll(createdVideo.id);
+    expect(transcodings[1].url).toBeDefined();
+    expect(transcodings[2].url).toBeUndefined();
+
+    await service.update(createdVideo.id, {
+      status: TranscodingStatus.COMPLETED,
+      quality: transcodings[2].targetQuality as any,
+    });
+
+    transcodings = await service.findAll(createdVideo.id);
+    expect(transcodings[2].url).toBeDefined();
   });
 });
