@@ -65,7 +65,7 @@ describe('VideoService', () => {
     };
     await service.create(video, userId);
     const videos = await service.findAll(1);
-    expect(videos).toHaveLength(1);
+    expect(videos.items).toHaveLength(1);
   });
 
   it('Should be able to update video', async () => {
@@ -77,10 +77,10 @@ describe('VideoService', () => {
     await service.create(video, userId);
 
     const videos = await service.findAll(1);
-    expect(videos).toHaveLength(1);
+    expect(videos.items).toHaveLength(1);
     expect(await service.count()).toBe(1);
 
-    const updatedVideo = await service.update(videos[0].id, {
+    const updatedVideo = await service.update(videos.items[0].id, {
       title: 'Updated Video',
     });
     expect(updatedVideo.title).toBe('Updated Video');
@@ -95,10 +95,10 @@ describe('VideoService', () => {
     await service.create(video, userId);
 
     const videos = await service.findAll(1);
-    expect(videos).toHaveLength(1);
+    expect(videos.items).toHaveLength(1);
     expect(await service.count()).toBe(1);
 
-    await service.remove(videos[0].id, userId);
+    await service.remove(videos.items[0].id, userId);
     expect(await service.count()).toBe(0);
   });
 
@@ -111,10 +111,10 @@ describe('VideoService', () => {
     await service.create(video, userId);
 
     const videos = await service.findAll(1);
-    expect(videos).toHaveLength(1);
+    expect(videos.items).toHaveLength(1);
     expect(await service.count()).toBe(1);
     await expect(() =>
-      service.remove(videos[0].id, 'randomId'),
+      service.remove(videos.items[0].id, 'randomId'),
     ).rejects.toThrow();
   });
 });

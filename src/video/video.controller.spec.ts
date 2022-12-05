@@ -80,10 +80,10 @@ describe('VideoController', () => {
     const result = await controller.create(video, { user: { userId } });
     expect(result.preSignedURL).toBeDefined();
     const videos = await controller.findAll();
-    expect(videos.data).toHaveLength(1);
-    expect(videos.total).toBe(1);
+    expect(videos.items).toHaveLength(1);
+    expect(videos.items.length).toBe(1);
 
-    const updatedVideo = await controller.update(videos.data[0].id, {
+    const updatedVideo = await controller.update(videos.items[0].id, {
       title: 'Updated Video',
     });
     expect(updatedVideo.title).toBe('Updated Video');

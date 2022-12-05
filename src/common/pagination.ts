@@ -6,12 +6,19 @@ export const PaginationSchema = {
       properties: {
         total: {
           type: 'number',
+          description: 'Total number of items',
         },
         per: {
           type: 'number',
+          description: 'Number of items per page',
         },
         page: {
           type: 'number',
+          description: 'Current page number',
+        },
+        totalPages: {
+          type: 'number',
+          description: 'Total number of pages',
         },
       },
     },
@@ -27,5 +34,16 @@ export const getPaginationMetaData = (
     total: total,
     per,
     page,
+    totalPages: Math.ceil(total / per),
   };
 };
+
+export interface Pagination<T> {
+  items: T[];
+  metadata: {
+    total: number;
+    per: number;
+    page: number;
+    totalPages: number;
+  };
+}
