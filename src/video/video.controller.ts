@@ -11,18 +11,25 @@ import {
   Request,
 } from '@nestjs/common';
 import { Prisma, Video } from '@prisma/client';
-import { Pagination } from '../common/types';
+import { Pagination, PaginationSchema } from '../common/pagination';
 import { TranscodingService } from '../transcoding/transcoding.service';
 import { StorageService } from '../storage/storage.service';
 
 import { VideoService } from './video.service';
 import { InjectAMQPChannel } from '@enriqcg/nestjs-amqp';
 import { Channel } from 'amqplib';
-import { ApiCreatedResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiCreatedResponse,
+  ApiExtraModels,
+  ApiOkResponse,
+  ApiTags,
+  getSchemaPath,
+} from '@nestjs/swagger';
 import { CreateVideoDto } from './dto/create-video.dto';
 import { CreateAnalyzingResult } from './dto/create-analyzing.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth-guard';
 import { config } from '../common/utils/config/config';
+import { GetVideoDto } from './dto/get-video.dto';
 
 @Controller('video')
 @ApiTags('video')
@@ -73,18 +80,34 @@ export class VideoController {
   }
 
   @Get()
+  @ApiExtraModels(GetVideoDto)
+  @ApiOkResponse({
+    description: 'Get a list of videos',
+    schema: {
+      allOf: [
+        {
+          type: 'object',
+          properties: {
+            items: {
+              type: 'array',
+              items: {
+                $ref: getSchemaPath(GetVideoDto),
+              },
+            },
+          },
+        },
+        {
+          ...PaginationSchema,
+        },
+      ],
+    },
+  })
   async findAll(
     @Param('page') page: number = config.defaultStartingPage,
-    @Param('limit') limit: number = config.numberOfItemsPerPage,
+    @Param('per') limit: number = config.numberOfItemsPerPage,
   ): Promise<Pagination<Video>> {
     const videos = await this.videoService.findAll(page, limit);
-    const count = await this.videoService.count();
-    return {
-      page,
-      limit,
-      total: count,
-      data: videos,
-    };
+    return videos;
   }
 
   @Get(':id')

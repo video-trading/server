@@ -4,6 +4,7 @@ import { PrismaService } from '../prisma.service';
 import { CreateAnalyzingResult } from './dto/create-analyzing.dto';
 import { CreateVideoDto } from './dto/create-video.dto';
 import { config } from '../common/utils/config/config';
+import { getPaginationMetaData } from '../common/pagination';
 
 @Injectable()
 export class VideoService {
@@ -22,11 +23,18 @@ export class VideoService {
     });
   }
 
-  findAll(page: number, limit: number = config.numberOfItemsPerPage) {
-    return this.prisma.video.findMany({
-      skip: (page - 1) * limit,
-      take: limit,
+  findAll(page: number, per: number = config.numberOfItemsPerPage) {
+    const videos = this.prisma.video.findMany({
+      skip: (page - 1) * per,
+      take: per,
     });
+
+    const total = this.prisma.video.count();
+
+    return Promise.all([videos, total]).then(([videos, total]) => ({
+      items: videos,
+      metadata: getPaginationMetaData(page, per, total),
+    }));
   }
 
   findOne(id: string) {
