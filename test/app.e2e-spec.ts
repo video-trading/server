@@ -6,6 +6,7 @@ import { MongoMemoryReplSet } from 'mongodb-memory-server';
 import jwt from 'jsonwebtoken';
 import { Environments } from '../src/common/environment';
 import { UserService } from '../src/user/user.service';
+import { PrismaService } from '../src/prisma.service';
 
 jest.mock('axios', () => ({
   get: jest.fn().mockImplementation(),
@@ -38,6 +39,7 @@ describe('AppController (e2e)', () => {
   let mongod: MongoMemoryReplSet;
   let accessKey: string;
   let userId: string;
+  let prisma: PrismaService;
 
   beforeAll(async () => {
     mongod = await MongoMemoryReplSet.create({
@@ -47,7 +49,6 @@ describe('AppController (e2e)', () => {
 
   afterAll(async () => {
     await mongod.stop();
-    await mongod.cleanup();
   });
 
   beforeEach(async () => {
@@ -59,6 +60,8 @@ describe('AppController (e2e)', () => {
     app = moduleFixture.createNestApplication();
 
     const userService = moduleFixture.get<UserService>(UserService);
+    prisma = moduleFixture.get<PrismaService>(PrismaService);
+
     const user = await userService.create({
       email: '',
       name: '',
@@ -69,6 +72,10 @@ describe('AppController (e2e)', () => {
     userId = user.id;
     accessKey = jwt.sign({ userId: userId }, Environments.jwt_secret);
     await app.init();
+  });
+
+  afterEach(async () => {
+    await prisma.$disconnect();
   });
 
   it('Should be able to signIn', async () => {
@@ -161,5 +168,59 @@ describe('AppController (e2e)', () => {
       .expect((response) => {
         expect(response.body.status).toBe('COMPLETED');
       });
+  });
+
+  it('Should be able to modify playlist', async () => {
+    // create a video
+    const response = await request(app.getHttpServer())
+      .post('/video')
+      .set('Authorization', `Bearer ${accessKey}`)
+      .send({
+        title: 'Test Video',
+        fileName: 'test.mov',
+        description: 'Test Video',
+      })
+      .expect(201)
+      .expect((response) => {
+        expect(response.body.video).toHaveProperty('id');
+        expect(response.body.video).toHaveProperty('title', 'Test Video');
+        expect(response.body.video).toHaveProperty('fileName', 'test.mov');
+      });
+
+    const videoId = response.body.video.id;
+
+    // create playlist
+    const playlist = await request(app.getHttpServer())
+      .post('/playlist')
+      .set('Authorization', `Bearer ${accessKey}`)
+      .send({
+        name: 'Test Playlist',
+        description: 'Test Playlist',
+      })
+      .expect(201)
+      .expect((response) => {
+        expect(response.body).toHaveProperty('id');
+        expect(response.body).toHaveProperty('name', 'Test Playlist');
+      });
+
+    // get playlist
+    const playlistId = playlist.body.id;
+    await request(app.getHttpServer())
+      .get(`/playlist/${playlistId}`)
+      .set('Authorization', `Bearer ${accessKey}`)
+      .expect(200)
+      .expect((response) => {
+        expect(response.body).toHaveProperty('id', playlistId);
+        expect(response.body).toHaveProperty('name', 'Test Playlist');
+      });
+
+    // add video to playlist
+    await request(app.getHttpServer())
+      .patch(`/playlist/${playlistId}/video`)
+      .set('Authorization', `Bearer ${accessKey}`)
+      .send({
+        videoId: videoId,
+      })
+      .expect(200);
   });
 });

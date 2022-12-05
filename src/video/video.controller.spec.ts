@@ -75,7 +75,6 @@ describe('VideoController', () => {
       description: '',
       title: 'Test Video',
       fileName: 'test-video.mp4',
-      url: '',
     };
 
     const result = await controller.create(video, { user: { userId } });
@@ -94,7 +93,6 @@ describe('VideoController', () => {
     const video: CreateVideoDto = {
       description: '',
       title: 'Test Video',
-      url: '',
       fileName: 'test-video.mp4',
     };
 

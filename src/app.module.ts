@@ -10,6 +10,7 @@ import { VideoModule } from './video/video.module';
 import { Environments } from './common/environment';
 import { AuthModule } from './auth/auth.module';
 import { BlockchainService } from './blockchain/blockchain.service';
+import { PlaylistModule } from './playlist/playlist.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { BlockchainService } from './blockchain/blockchain.service';
     StorageModule,
     TranscodingModule,
     UserModule,
+    PlaylistModule,
   ],
   controllers: [AppController],
   providers: [AppService, BlockchainService],
