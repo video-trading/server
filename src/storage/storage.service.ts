@@ -1,4 +1,5 @@
 import {
+  GetObjectCommand,
   HeadObjectCommand,
   PutObjectCommand,
   S3Client,
@@ -7,6 +8,12 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { Injectable } from '@nestjs/common';
 import { Video } from '@prisma/client';
 import { VideoQuality } from 'src/common/video';
+
+export enum Operation {
+  GET = 'getObject',
+  HEAD = 'headObject',
+  PUT = 'putObject',
+}
 
 @Injectable()
 export class StorageService {
@@ -31,27 +38,56 @@ export class StorageService {
     return `Transcoding/${video.id}/${quality}/${video.fileName}`;
   }
 
-  async generatePreSignedUrlForVideoUpload(video: Video) {
+  async generatePreSignedUrlForVideo(
+    video: Video,
+    operation: Operation = Operation.PUT,
+  ) {
     const params = {
       Bucket: process.env.SERVER_AWS_BUCKET_NAME,
       Key: this.getUploadVideoKey(video),
     };
 
-    const command = new PutObjectCommand(params);
+    let command: GetObjectCommand | HeadObjectCommand | PutObjectCommand;
+
+    switch (operation) {
+      case Operation.GET:
+        command = new GetObjectCommand(params);
+        break;
+      case Operation.HEAD:
+        command = new HeadObjectCommand(params);
+        break;
+      case Operation.PUT:
+        command = new PutObjectCommand(params);
+        break;
+    }
 
     return getSignedUrl(this.s3, command, { expiresIn: 60 * 60 });
   }
 
-  async generatePreSignedUrlForTranscodingUpload(
+  async generatePreSignedUrlForTranscoding(
     video: Video,
     quality: VideoQuality,
+    operation: Operation = Operation.PUT,
   ) {
     const params = {
       Bucket: process.env.SERVER_AWS_BUCKET_NAME,
       Key: this.getTranscodingVideoKey(video, quality),
     };
 
-    const command = new PutObjectCommand(params);
+    let command: GetObjectCommand | HeadObjectCommand | PutObjectCommand;
+
+    switch (operation) {
+      case Operation.GET:
+        command = new GetObjectCommand(params);
+        break;
+      case Operation.HEAD:
+        command = new HeadObjectCommand(params);
+        break;
+      case Operation.PUT:
+        command = new PutObjectCommand(params);
+        break;
+    }
+
     return getSignedUrl(this.s3, command, { expiresIn: 60 * 60 });
   }
 

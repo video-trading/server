@@ -1,8 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { Prisma } from '@prisma/client';
+import { Prisma, TranscodingStatus } from '@prisma/client';
 import { MongoMemoryReplSet } from 'mongodb-memory-server';
 import { StorageService } from '../storage/storage.service';
-import { TranscodingStatus, VideoQuality } from '../common/video';
+import { VideoQuality } from '../common/video';
 import { PrismaService } from '../prisma.service';
 import { VideoService } from '../video/video.service';
 import { TranscodingService } from './transcoding.service';
@@ -89,11 +89,14 @@ describe('TranscodingService', () => {
       description: '',
     };
 
-    const videoService = new VideoService(new PrismaService());
+    const videoService = new VideoService(
+      new PrismaService(),
+      new StorageService(),
+    );
     const createdVideo = await videoService.create(video, userId);
 
     const transcoding: Prisma.TranscodingUncheckedCreateInput = {
-      status: '',
+      status: TranscodingStatus.PENDING,
       progress: 0,
       videoId: createdVideo.id,
       targetQuality: VideoQuality.Quality144p,
@@ -118,7 +121,10 @@ describe('TranscodingService', () => {
       description: '',
     };
 
-    const videoService = new VideoService(new PrismaService());
+    const videoService = new VideoService(
+      new PrismaService(),
+      new StorageService(),
+    );
     const createdVideo = await videoService.create(video, userId);
 
     const transcodings = await service.createTranscodingsWithVideo({

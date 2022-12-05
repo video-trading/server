@@ -6,6 +6,7 @@ import { AMQPModule } from '@enriqcg/nestjs-amqp';
 import { CreateVideoDto } from './dto/create-video.dto';
 import { BlockchainService } from '../blockchain/blockchain.service';
 import { UnauthorizedException } from '@nestjs/common';
+import { StorageService } from '../storage/storage.service';
 
 describe('VideoService', () => {
   let service: VideoService;
@@ -28,7 +29,12 @@ describe('VideoService', () => {
     process.env.DATABASE_URL = mongod.getUri('video');
     const module: TestingModule = await Test.createTestingModule({
       imports: [AMQPModule.forRoot({})],
-      providers: [VideoService, PrismaService, BlockchainService],
+      providers: [
+        VideoService,
+        PrismaService,
+        BlockchainService,
+        StorageService,
+      ],
     }).compile();
 
     service = module.get<VideoService>(VideoService);

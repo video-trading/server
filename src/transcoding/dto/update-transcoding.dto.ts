@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { TranscodingStatus, VideoQuality } from '../../common/video';
+import { VideoQuality } from '../../common/video';
+import { TranscodingStatus } from '@prisma/client';
 
 export class UpdateTranscodingDto {
   @ApiProperty()
