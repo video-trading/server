@@ -9,6 +9,7 @@ import { AuthController } from './auth.controller';
 import { LocalStrategy } from './local.strategy';
 import { PrismaService } from '../prisma.service';
 import { BlockchainService } from '../blockchain/blockchain.service';
+import { StorageService } from '../storage/storage.service';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { BlockchainService } from '../blockchain/blockchain.service';
     LocalStrategy,
     PrismaService,
     BlockchainService,
+    StorageService,
   ],
   exports: [AuthService],
   controllers: [AuthController],

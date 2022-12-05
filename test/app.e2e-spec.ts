@@ -17,6 +17,7 @@ jest.mock('@aws-sdk/client-s3', () => {
   return {
     HeadObjectCommand: jest.fn().mockImplementation(),
     PutObjectCommand: jest.fn().mockImplementation(),
+    GetObjectCommand: jest.fn().mockImplementation(),
     S3Client: jest.fn().mockImplementation(() => {
       return {
         send: jest.fn().mockImplementation(),
@@ -98,6 +99,25 @@ describe('AppController (e2e)', () => {
       .expect(201);
 
     expect(response.body).toHaveProperty('accessToken');
+  });
+
+  it('Should be able to create and update user avatar ', async () => {
+    const response = await request(app.getHttpServer())
+      .post(`/user/avatar`)
+      .set('Authorization', `Bearer ${accessKey}`)
+      .expect(201);
+
+    expect(response.body).toHaveProperty('preSignedUrl');
+
+    const response2 = await request(app.getHttpServer())
+      .patch(`/user/${userId}`)
+      .set('Authorization', `Bearer ${accessKey}`)
+      .send({
+        avatar: '/avatar.png',
+      })
+      .expect(200);
+
+    expect(response2.body).toHaveProperty('avatar', '/avatar.png');
   });
 
   it('Should be able to upload video', async () => {

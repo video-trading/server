@@ -1,15 +1,17 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { PrismaService } from '../prisma.service';
 import * as bcrypt from 'bcrypt';
 import { BlockchainService } from '../blockchain/blockchain.service';
+import { Operation, StorageService } from '../storage/storage.service';
 
 @Injectable()
 export class UserService {
   constructor(
-    private prisma: PrismaService,
-    private blockchainService: BlockchainService,
+    private readonly prisma: PrismaService,
+    private readonly blockchainService: BlockchainService,
+    private readonly storage: StorageService,
   ) {
     // ...
   }
@@ -64,6 +66,16 @@ export class UserService {
   }
 
   async update(id: string, updateUserDto: UpdateUserDto) {
+    if (updateUserDto.avatar) {
+      const exists = await this.storage.checkIfAvatarExists(
+        updateUserDto.avatar,
+      );
+      if (!exists) {
+        throw new BadRequestException('Avatar does not exist');
+      }
+    }
+
+    // only allows updating email, name and avatar
     return this.prisma.user.update({
       where: {
         id,
@@ -71,6 +83,7 @@ export class UserService {
       data: {
         email: updateUserDto.email,
         name: updateUserDto.name,
+        avatar: updateUserDto.avatar,
       },
     });
   }

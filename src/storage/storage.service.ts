@@ -6,7 +6,7 @@ import {
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { Injectable } from '@nestjs/common';
-import { Video } from '@prisma/client';
+import { User, Video } from '@prisma/client';
 import { VideoQuality } from 'src/common/video';
 
 export enum Operation {
@@ -38,6 +38,30 @@ export class StorageService {
     return `Transcoding/${video.id}/${quality}/${video.fileName}`;
   }
 
+  /**
+   * Will get presigned url for user's avatar
+   * @param user User
+   * @param operation Operation
+   */
+  async generatePreSignedUrlForAvatar(
+    user: User,
+    operation: Operation = Operation.PUT,
+  ) {
+    const params = {
+      Bucket: process.env.SERVER_AWS_BUCKET_NAME,
+      Key: `Avatars/${user.id}/${user.id}.png`,
+    };
+
+    return getSignedUrl(this.s3, this.getCommand(operation, params), {
+      expiresIn: 60 * 60,
+    });
+  }
+
+  /**
+   * Will get presigned url for video
+   * @param video
+   * @param operation
+   */
   async generatePreSignedUrlForVideo(
     video: Video,
     operation: Operation = Operation.PUT,
@@ -47,23 +71,17 @@ export class StorageService {
       Key: this.getUploadVideoKey(video),
     };
 
-    let command: GetObjectCommand | HeadObjectCommand | PutObjectCommand;
-
-    switch (operation) {
-      case Operation.GET:
-        command = new GetObjectCommand(params);
-        break;
-      case Operation.HEAD:
-        command = new HeadObjectCommand(params);
-        break;
-      case Operation.PUT:
-        command = new PutObjectCommand(params);
-        break;
-    }
-
-    return getSignedUrl(this.s3, command, { expiresIn: 60 * 60 });
+    return getSignedUrl(this.s3, this.getCommand(operation, params), {
+      expiresIn: 60 * 60,
+    });
   }
 
+  /**
+   * Will get presigned url for transcoded video
+   * @param video
+   * @param quality
+   * @param operation
+   */
   async generatePreSignedUrlForTranscoding(
     video: Video,
     quality: VideoQuality,
@@ -74,21 +92,9 @@ export class StorageService {
       Key: this.getTranscodingVideoKey(video, quality),
     };
 
-    let command: GetObjectCommand | HeadObjectCommand | PutObjectCommand;
-
-    switch (operation) {
-      case Operation.GET:
-        command = new GetObjectCommand(params);
-        break;
-      case Operation.HEAD:
-        command = new HeadObjectCommand(params);
-        break;
-      case Operation.PUT:
-        command = new PutObjectCommand(params);
-        break;
-    }
-
-    return getSignedUrl(this.s3, command, { expiresIn: 60 * 60 });
+    return getSignedUrl(this.s3, this.getCommand(operation, params), {
+      expiresIn: 60 * 60,
+    });
   }
 
   /**
@@ -126,6 +132,41 @@ export class StorageService {
       return true;
     } catch (error) {
       return false;
+    }
+  }
+
+  /**
+   * Check if avatar exists in S3
+   * @param avatarKey
+   */
+  async checkIfAvatarExists(avatarKey: string) {
+    const params = {
+      Bucket: process.env.SERVER_AWS_BUCKET_NAME,
+      Key: avatarKey,
+    };
+
+    try {
+      await this.s3.send(new HeadObjectCommand(params));
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  /**
+   * Will the command for S3 based on operation
+   * @param operation
+   * @param params
+   * @private
+   */
+  private getCommand(operation: Operation, params: any) {
+    switch (operation) {
+      case Operation.GET:
+        return new GetObjectCommand(params);
+      case Operation.HEAD:
+        return new HeadObjectCommand(params);
+      case Operation.PUT:
+        return new PutObjectCommand(params);
     }
   }
 }
