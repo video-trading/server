@@ -53,7 +53,6 @@ model Video {
   title           String
   fileName        String
   description     String
-  url             String?
   thumbnail       String?
   views           Int              @default(0)
   likes           Int              @default(0)
@@ -65,6 +64,7 @@ model Video {
   userId          String
   Playlist        Playlist?        @relation(fields: [playlistId], references: [id])
   playlistId      String?          @db.ObjectId
+  status          VideoStatus      @default(UPLOADING)
 }
 
 model Comment {
@@ -86,16 +86,31 @@ model AnalyzingResult {
 }
 
 model Transcoding {
-  id            String   @id @default(auto()) @map("_id") @db.ObjectId
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  Video         Video    @relation(fields: [videoId], references: [id])
+  id            String            @id @default(auto()) @map("_id") @db.ObjectId
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  Video         Video             @relation(fields: [videoId], references: [id])
   targetQuality String
   videoId       String
-  status        String
+  status        TranscodingStatus @default(PENDING)
   progress      Int
   url           String?
 
   // unique together with videoId and targetQuality
   @@unique([videoId, targetQuality])
+}
+
+enum VideoStatus {
+  UPLOADING
+  ANALYZING
+  TRANSCODING
+  READY
+  FAILED
+}
+
+enum TranscodingStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
 }

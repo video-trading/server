@@ -1,6 +1,7 @@
 import { ConfigModule } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
 import { StorageService } from './storage.service';
+import { TranscodingStatus, VideoStatus } from '@prisma/client';
 
 describe('StorageService', () => {
   let service: StorageService;
@@ -20,10 +21,9 @@ describe('StorageService', () => {
   });
 
   it('should be defined', () => {
-    const preSignedURL = service.generatePreSignedUrlForVideoUpload({
+    const preSignedURL = service.generatePreSignedUrlForVideo({
       id: '1',
       title: 'test',
-      url: 'test',
       fileName: 'test-video.mp4',
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -34,6 +34,7 @@ describe('StorageService', () => {
       description: '',
       userId: '',
       playlistId: '',
+      status: VideoStatus.UPLOADING,
     });
 
     expect(preSignedURL).toBeDefined();

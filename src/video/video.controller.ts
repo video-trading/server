@@ -10,7 +10,7 @@ import {
   UseGuards,
   Request,
 } from '@nestjs/common';
-import { Prisma, Video } from '@prisma/client';
+import { Prisma, Video, VideoStatus } from '@prisma/client';
 import { Pagination, PaginationSchema } from '../common/pagination';
 import { TranscodingService } from '../transcoding/transcoding.service';
 import { StorageService } from '../storage/storage.service';
@@ -52,10 +52,9 @@ export class VideoController {
     @Request() req,
   ): Promise<{ video: Video; preSignedURL: string }> {
     const createdVideo = await this.videoService.create(video, req.user.userId);
-    const preSignedURL =
-      await this.storageService.generatePreSignedUrlForVideoUpload(
-        createdVideo,
-      );
+    const preSignedURL = await this.storageService.generatePreSignedUrlForVideo(
+      createdVideo,
+    );
     return {
       video: createdVideo,
       preSignedURL,
@@ -70,6 +69,7 @@ export class VideoController {
     if (!exist) {
       throw new HttpException("Video doesn't exist", 400);
     }
+    await this.videoService.update(id, { status: VideoStatus.ANALYZING });
     const success = this.amqpChannel.publish(
       'video',
       'analyzing',
@@ -150,6 +150,7 @@ export class VideoController {
       'transcoding',
       Buffer.from(JSON.stringify(transodings)),
     );
+    await this.videoService.update(id, { status: VideoStatus.TRANSCODING });
     return transodings;
   }
 }

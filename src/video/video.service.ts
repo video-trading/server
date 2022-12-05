@@ -1,14 +1,15 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { AnalyzingResult, Prisma } from '@prisma/client';
+import { AnalyzingResult, Prisma, VideoStatus } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
 import { CreateAnalyzingResult } from './dto/create-analyzing.dto';
 import { CreateVideoDto } from './dto/create-video.dto';
 import { config } from '../common/utils/config/config';
 import { getPaginationMetaData } from '../common/pagination';
+import { Operation, StorageService } from '../storage/storage.service';
 
 @Injectable()
 export class VideoService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService, private storage: StorageService) {}
 
   create(video: CreateVideoDto, user: string) {
     return this.prisma.video.create({
@@ -37,12 +38,23 @@ export class VideoService {
     }));
   }
 
-  findOne(id: string) {
-    return this.prisma.video.findUnique({
+  async findOne(id: string) {
+    const video = await this.prisma.video.findUnique({
       where: {
         id,
       },
     });
+
+    return {
+      ...video,
+      url:
+        video.status === VideoStatus.READY
+          ? await this.storage.generatePreSignedUrlForVideo(
+              video,
+              Operation.GET,
+            )
+          : undefined,
+    };
   }
 
   update(id: string, data: Prisma.VideoUpdateInput) {

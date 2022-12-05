@@ -1,4 +1,4 @@
-/** @type {import('ts-jest/dist/types').InitialOptionsTsJest} */
+/** @type {import("ts-jest/dist/types").InitialOptionsTsJest} */
 module.exports = {
   moduleFileExtensions: ['js', 'json', 'ts'],
   rootDir: 'src',
@@ -10,4 +10,10 @@ module.exports = {
   coverageDirectory: '../coverage',
   testEnvironment: 'node',
   testTimeout: 30000,
+  coveragePathIgnorePatterns: [
+    '/node_modules/',
+    // every .module.ts file is a module, so it's not tested directly
+    '.module.ts',
+    'main.ts',
+  ],
 };

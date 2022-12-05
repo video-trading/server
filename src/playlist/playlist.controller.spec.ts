@@ -269,7 +269,6 @@ describe('PlaylistController', () => {
       data: {
         title: 'video',
         description: "video's description",
-        url: 'https://www.youtube.com/watch?v=123',
         thumbnail: 'https://www.youtube.com/watch?v=123',
         fileName: '123',
         User: {
@@ -284,7 +283,6 @@ describe('PlaylistController', () => {
       data: {
         title: 'video2',
         description: "video's description",
-        url: 'https://www.youtube.com/watch?v=123',
         thumbnail: 'https://www.youtube.com/watch?v=123',
         fileName: '123',
         User: {
@@ -343,7 +341,6 @@ describe('PlaylistController', () => {
       data: {
         title: 'video',
         description: "video's description",
-        url: 'https://www.youtube.com/watch?v=123',
         thumbnail: 'https://www.youtube.com/watch?v=123',
         fileName: '123',
         User: {

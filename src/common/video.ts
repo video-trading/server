@@ -7,10 +7,3 @@ export enum VideoQuality {
   Quality1080p = '1080p',
   Quality2160p = '2160p',
 }
-
-export enum TranscodingStatus {
-  PENDING = 'PENDING',
-  PROCESSING = 'PROCESSING',
-  COMPLETED = 'COMPLETED',
-  FAILED = 'FAILED',
-}

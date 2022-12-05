@@ -105,7 +105,6 @@ describe('PlaylistService', () => {
         description: '',
         title: 'Test Video',
         fileName: 'test-video.mp4',
-        url: '',
         userId: userId,
       },
     });
@@ -132,7 +131,6 @@ describe('PlaylistService', () => {
         description: '',
         title: 'Test Video',
         fileName: 'test-video.mp4',
-        url: '',
         userId: userId,
       },
     });

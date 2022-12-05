@@ -5,7 +5,8 @@ import { PrismaService } from '../prisma.service';
 import { AMQPModule } from '@enriqcg/nestjs-amqp';
 import { CreateVideoDto } from './dto/create-video.dto';
 import { BlockchainService } from '../blockchain/blockchain.service';
-import { UnauthorizedException } from '@nestjs/common';
+import { StorageService } from '../storage/storage.service';
+import { VideoStatus } from '@prisma/client';
 
 describe('VideoService', () => {
   let service: VideoService;
@@ -17,18 +18,22 @@ describe('VideoService', () => {
     mongod = await MongoMemoryReplSet.create({
       replSet: { count: 1, storageEngine: 'wiredTiger' },
     });
+    process.env.DATABASE_URL = mongod.getUri('video');
   });
 
   afterAll(async () => {
-    await prisma.$disconnect();
     await mongod.stop();
   });
 
   beforeEach(async () => {
-    process.env.DATABASE_URL = mongod.getUri('video');
     const module: TestingModule = await Test.createTestingModule({
       imports: [AMQPModule.forRoot({})],
-      providers: [VideoService, PrismaService, BlockchainService],
+      providers: [
+        VideoService,
+        PrismaService,
+        BlockchainService,
+        StorageService,
+      ],
     }).compile();
 
     service = module.get<VideoService>(VideoService);
@@ -116,5 +121,39 @@ describe('VideoService', () => {
     await expect(() =>
       service.remove(videos.items[0].id, 'randomId'),
     ).rejects.toThrow();
+  });
+
+  it('Should be able to find video by id', async () => {
+    let video: any = {
+      title: 'Test Video',
+      fileName: 'test-video.mp4',
+      description: '',
+    };
+    video = await service.create(video, userId);
+
+    // should only get video's url when video status is ready
+    let foundVideo = await service.findOne(video.id);
+    expect(foundVideo).toBeDefined();
+    expect(foundVideo.url).not.toBeDefined();
+
+    await service.update(video.id, { status: VideoStatus.UPLOADING });
+    foundVideo = await service.findOne(video.id);
+    expect(foundVideo).toBeDefined();
+    expect(foundVideo.url).not.toBeDefined();
+
+    await service.update(video.id, { status: VideoStatus.TRANSCODING });
+    foundVideo = await service.findOne(video.id);
+    expect(foundVideo).toBeDefined();
+    expect(foundVideo.url).not.toBeDefined();
+
+    await service.update(video.id, { status: VideoStatus.FAILED });
+    foundVideo = await service.findOne(video.id);
+    expect(foundVideo).toBeDefined();
+    expect(foundVideo.url).not.toBeDefined();
+
+    await service.update(video.id, { status: VideoStatus.READY });
+    foundVideo = await service.findOne(video.id);
+    expect(foundVideo).toBeDefined();
+    expect(foundVideo.url).toBeDefined();
   });
 });

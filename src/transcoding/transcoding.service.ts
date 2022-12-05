@@ -1,7 +1,7 @@
 import { HttpException, Injectable } from '@nestjs/common';
-import { Prisma, Video, AnalyzingResult } from '@prisma/client';
-import { StorageService } from '../storage/storage.service';
-import { TranscodingStatus, VideoQuality } from '../common/video';
+import { AnalyzingResult, Prisma, TranscodingStatus } from '@prisma/client';
+import { Operation, StorageService } from '../storage/storage.service';
+import { VideoQuality } from '../common/video';
 import { PrismaService } from '../prisma.service';
 import { UpdateTranscodingDto } from './dto/update-transcoding.dto';
 
@@ -11,6 +11,7 @@ export class TranscodingService {
     private readonly prismService: PrismaService,
     private readonly storageService: StorageService,
   ) {}
+
   create(data: Prisma.TranscodingUncheckedCreateInput) {
     return this.prismService.transcoding.create({
       data,
@@ -22,19 +23,42 @@ export class TranscodingService {
    * @param videoId Video to be transcoded
    * @returns Transcoding objects
    */
-  findAll(videoId: string) {
-    return this.prismService.transcoding.findMany({
+  async findAll(videoId: string) {
+    const transcodingsPromise = this.prismService.transcoding.findMany({
       where: {
         videoId: videoId,
       },
     });
+
+    const videoPromise = this.prismService.video.findUnique({
+      where: {
+        id: videoId,
+      },
+    });
+
+    const [transcodings, video] = await Promise.all([
+      transcodingsPromise,
+      videoPromise,
+    ]);
+
+    return transcodings.map((transcoding) => ({
+      ...transcoding,
+      url:
+        transcoding.status === TranscodingStatus.COMPLETED
+          ? this.storageService.generatePreSignedUrlForTranscoding(
+              video,
+              transcoding.targetQuality as any,
+              Operation.GET,
+            )
+          : undefined,
+    }));
   }
 
-  async update(id: string, status: UpdateTranscodingDto) {
+  async update(videoId: string, status: UpdateTranscodingDto) {
     if (status.status === TranscodingStatus.COMPLETED) {
       const video = await this.prismService.video.findUnique({
         where: {
-          id: id,
+          id: videoId,
         },
       });
       const exists = await this.storageService.checkIfTranscodedVideoExists(
@@ -52,7 +76,7 @@ export class TranscodingService {
     return this.prismService.transcoding.update({
       where: {
         videoId_targetQuality: {
-          videoId: id,
+          videoId: videoId,
           targetQuality: status.quality,
         },
       },
@@ -61,11 +85,13 @@ export class TranscodingService {
       },
     });
   }
+
   remove(id: string) {
     return this.prismService.transcoding.delete({
       where: { id },
     });
   }
+
   async createTranscodingsWithVideo(analyzingResult: AnalyzingResult) {
     // get video
     const video = await this.prismService.video.findUnique({
@@ -77,10 +103,7 @@ export class TranscodingService {
     // create a list of pre-signed upload urls based on the video quality
     const presignedUrls = await Promise.all(
       transcodings.map((quality) =>
-        this.storageService.generatePreSignedUrlForTranscodingUpload(
-          video,
-          quality,
-        ),
+        this.storageService.generatePreSignedUrlForTranscoding(video, quality),
       ),
     );
     // create transcoding objects
@@ -98,6 +121,7 @@ export class TranscodingService {
     });
     return videoQualities;
   }
+
   private getTranscodings(quality: VideoQuality): VideoQuality[] {
     if (quality === VideoQuality.Quality144p) {
       return [VideoQuality.Quality144p];
