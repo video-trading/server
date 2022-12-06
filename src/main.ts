@@ -2,13 +2,14 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { config } from 'dotenv';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import { ValidationPipe } from "@nestjs/common";
+import { ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
   config();
 
   const app = await NestFactory.create(AppModule);
   app.useGlobalPipes(new ValidationPipe());
+  app.enableCors();
 
   const docConfig = new DocumentBuilder()
     .setTitle('Video Trading API')
