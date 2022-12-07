@@ -11,6 +11,7 @@ jest.mock('@aws-sdk/client-s3', () => {
     HeadObjectCommand: jest.fn().mockImplementation(),
     PutObjectCommand: jest.fn().mockImplementation(),
     GetObjectCommand: jest.fn().mockImplementation(),
+    DeleteObjectCommand: jest.fn().mockImplementation(),
     S3Client: jest.fn().mockImplementation(() => {
       return {
         send: jest.fn().mockImplementation(),
@@ -75,11 +76,37 @@ describe('UserController', () => {
       },
     });
 
-    const url = await controller.createAvatar({
+    const { url, key } = await controller.createAvatar({
       user: {
         userId: user.id,
       },
     });
-    expect(url.preSignedUrl).toBeDefined();
+    expect(url).toBeDefined();
+    expect(key).toBeDefined();
+  });
+
+  it('Should be able to get user profile', async () => {
+    const user = await prisma.user.create({
+      data: {
+        email: '',
+        name: 'John Doe',
+        password: '',
+        username: 'johndoe',
+        Wallet: {
+          create: {
+            address: '',
+            privateKey: '',
+          },
+        },
+      },
+    });
+
+    const profile = await controller.profile({
+      user: {
+        userId: user.id,
+      },
+    });
+    expect(profile).toBeDefined();
+    expect(profile.id).toEqual(user.id);
   });
 });

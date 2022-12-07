@@ -18,6 +18,7 @@ jest.mock('@aws-sdk/client-s3', () => {
     HeadObjectCommand: jest.fn().mockImplementation(),
     PutObjectCommand: jest.fn().mockImplementation(),
     GetObjectCommand: jest.fn().mockImplementation(),
+    DeleteObjectCommand: jest.fn().mockImplementation(),
     S3Client: jest.fn().mockImplementation(() => {
       return {
         send: jest.fn().mockImplementation(),
@@ -107,10 +108,12 @@ describe('AppController (e2e)', () => {
       .set('Authorization', `Bearer ${accessKey}`)
       .expect(201);
 
-    expect(response.body).toHaveProperty('preSignedUrl');
+    expect(response.body).toHaveProperty('url');
+    expect(response.body).toHaveProperty('key');
+    expect(response.body).toHaveProperty('previewUrl');
 
     const response2 = await request(app.getHttpServer())
-      .patch(`/user/${userId}`)
+      .patch(`/user/profile`)
       .set('Authorization', `Bearer ${accessKey}`)
       .send({
         avatar: '/avatar.png',
