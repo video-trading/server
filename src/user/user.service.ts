@@ -5,6 +5,8 @@ import { PrismaService } from '../prisma.service';
 import * as bcrypt from 'bcrypt';
 import { BlockchainService } from '../blockchain/blockchain.service';
 import { Operation, StorageService } from '../storage/storage.service';
+import axios from 'axios';
+import * as fs from 'fs';
 
 @Injectable()
 export class UserService {
@@ -66,7 +68,13 @@ export class UserService {
   }
 
   async update(id: string, updateUserDto: UpdateUserDto) {
-    if (updateUserDto.avatar) {
+    const previousUser = await this.prisma.user.findUnique({
+      where: {
+        id,
+      },
+    });
+
+    if (updateUserDto.avatar && updateUserDto.avatar !== previousUser.avatar) {
       const exists = await this.storage.checkIfAvatarExists(
         updateUserDto.avatar,
       );
@@ -76,7 +84,7 @@ export class UserService {
     }
 
     // only allows updating email, name and avatar
-    return this.prisma.user.update({
+    const user = this.prisma.user.update({
       where: {
         id,
       },
@@ -84,8 +92,20 @@ export class UserService {
         email: updateUserDto.email,
         name: updateUserDto.name,
         avatar: updateUserDto.avatar,
+        shortDescription: updateUserDto.shortDescription,
+        longDescription: updateUserDto.longDescription,
+        version: {
+          increment: 1,
+        },
       },
     });
+
+    if (previousUser.avatar !== updateUserDto.avatar) {
+      // if avatar is updated, delete the previous avatar
+      await this.storage.deleteFile(previousUser.avatar);
+    }
+
+    return user;
   }
 
   findAll() {
@@ -96,6 +116,9 @@ export class UserService {
     return this.prisma.user.findUnique({
       where: {
         id,
+      },
+      include: {
+        Wallet: true,
       },
     });
   }
@@ -117,5 +140,32 @@ export class UserService {
         privateKey: undefined,
       },
     };
+  }
+
+  /**
+   * Generate an avatar using image generator service
+   * @param userId
+   */
+  async generateAvatar(userId: string) {
+    const user = await this.findOne(userId);
+    const generationEndpoint =
+      process.env.IMAGE_GENERATOR_ENDPOINT + '/api/dev/dev_text_to_image';
+    const avatar = await axios.post(generationEndpoint, {
+      prompt: user.name,
+      width: 512,
+      height: 512,
+      number_of_image: 1,
+      random_seed: true,
+      token: process.env.IMAGE_GENERATOR_API_KEY,
+    });
+
+    const imageUrl =
+      process.env.IMAGE_GENERATOR_ENDPOINT + avatar.data.data.list_image[0];
+    const image = await axios.get(imageUrl, {
+      responseType: 'text',
+      responseEncoding: 'base64',
+    });
+    const imageData = image.data;
+    return imageData;
   }
 }

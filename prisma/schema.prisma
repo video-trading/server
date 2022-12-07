@@ -2,7 +2,8 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["filteredRelationCount"]
 }
 
 datasource db {
@@ -20,20 +21,40 @@ model Wallet {
 }
 
 model User {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  email     String   @unique
-  name      String?
-  username  String   @unique
-  password  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  avatar    String?
+  // basic info
+  id               String   @id @default(auto()) @map("_id") @db.ObjectId
+  email            String   @unique
+  name             String?
+  username         String   @unique
+  password         String
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  avatar           String?
+  shortDescription String?
+  longDescription  String?
 
+  // version
+  version Int @default(0)
+
+  // video
   Playlist Playlist[]
   Videos   Video[]
 
+  // web3
   Wallet   Wallet @relation(fields: [walletId], references: [id])
   walletId String @unique @db.ObjectId
+
+  Followings  SubscriptionRelation[] @relation("following")
+  Subscribers SubscriptionRelation[]
+}
+
+model SubscriptionRelation {
+  id        String @id @default(auto()) @map("_id") @db.ObjectId
+  user      User   @relation(fields: [userId], references: [id])
+  following User   @relation("following", fields: [followingUserId], references: [id])
+
+  userId          String
+  followingUserId String
 }
 
 model Playlist {

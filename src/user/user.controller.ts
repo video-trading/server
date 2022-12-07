@@ -5,13 +5,17 @@ import {
   Param,
   Patch,
   Post,
-  UseGuards,
   Request,
   UnauthorizedException,
+  UseGuards,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { ApiAcceptedResponse, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiAcceptedResponse,
+  ApiBearerAuth,
+  ApiOkResponse,
+} from '@nestjs/swagger';
 import { Operation, StorageService } from '../storage/storage.service';
 import { JwtAuthGuard } from '../auth/jwt-auth-guard';
 
@@ -22,22 +26,12 @@ export class UserController {
     private readonly storage: StorageService,
   ) {}
 
-  @Patch(':id')
-  @ApiAcceptedResponse({
-    description:
-      'Update user by user id. Keep in mind that user cannot update its password and username using this function',
-    type: UpdateUserDto,
-  })
-  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-    return this.userService.update(id, updateUserDto);
-  }
-
   @Get()
   findAll() {
     return this.userService.findAll();
   }
 
-  @Get(':id')
+  @Get('id/:id')
   findOne(@Param('id') id: string) {
     return this.userService.findOne(id);
   }
@@ -51,21 +45,84 @@ export class UserController {
     schema: {
       type: 'object',
       properties: {
-        preSignedUrl: {
+        url: {
+          type: 'string',
+        },
+        key: {
+          type: 'string',
+        },
+        previewUrl: {
           type: 'string',
         },
       },
     },
   })
   async createAvatar(@Request() request): Promise<{
-    preSignedUrl: string;
+    key: string;
+    url: string;
+    previewUrl: string;
   }> {
     const user = await this.userService.findOne(request.user.userId);
+    const { key, url, previewUrl } =
+      await this.storage.generatePreSignedUrlForAvatar(user, Operation.PUT);
     return {
-      preSignedUrl: await this.storage.generatePreSignedUrlForAvatar(
-        user,
-        Operation.PUT,
-      ),
+      key,
+      url,
+      previewUrl,
     };
+  }
+
+  @Post('avatar/generate')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOkResponse({
+    description: 'Auto generate avatar using username',
+  })
+  async generateAvatar(@Request() request): Promise<any> {
+    const avatar = await this.userService.generateAvatar(request.user.userId);
+    const data = await this.storage.uploadAvatar(request.user.userId, avatar);
+    return {
+      ...data,
+    };
+  }
+
+  @Get('profile')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOkResponse({
+    description: 'Returns user profile',
+    type: UpdateUserDto,
+  })
+  async profile(@Request() request): Promise<any> {
+    const profile = await this.userService.findOne(request.user.userId);
+
+    if (!profile) {
+      throw new UnauthorizedException();
+    }
+
+    if (profile.avatar) {
+      const avatar = await this.storage.generatePreSignedUrlForAvatar(
+        profile,
+        Operation.GET,
+      );
+
+      return {
+        ...profile,
+        avatar,
+      };
+    }
+    return profile;
+  }
+
+  @Patch('profile')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiAcceptedResponse({
+    description:
+      'Update user profile by user id. Keep in mind that user cannot update its password and username using this function',
+    type: UpdateUserDto,
+  })
+  updateProfile(@Request() request, @Body() updateUserDto: UpdateUserDto) {
+    return this.userService.update(request.user.userId, updateUserDto);
   }
 }

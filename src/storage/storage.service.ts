@@ -1,4 +1,5 @@
 import {
+  DeleteObjectCommand,
   GetObjectCommand,
   HeadObjectCommand,
   PutObjectCommand,
@@ -8,11 +9,24 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { Injectable } from '@nestjs/common';
 import { User, Video } from '@prisma/client';
 import { VideoQuality } from 'src/common/video';
+import * as process from 'process';
 
 export enum Operation {
   GET = 'getObject',
   HEAD = 'headObject',
   PUT = 'putObject',
+}
+
+export interface SignedUrl {
+  /**
+   * Granted PutObject permission
+   */
+  url: string;
+  key: string;
+  /**
+   * Granted Get Object permission
+   */
+  previewUrl?: string;
 }
 
 @Injectable()
@@ -47,14 +61,47 @@ export class StorageService {
     user: User,
     operation: Operation = Operation.PUT,
   ) {
+    if (operation === Operation.GET) {
+      const key = user.avatar;
+      const params = {
+        Bucket: process.env.SERVER_AWS_BUCKET_NAME,
+        Key: key,
+      };
+      const url = await getSignedUrl(
+        this.s3,
+        this.getCommand(operation, params),
+        {
+          expiresIn: 60 * 60,
+        },
+      );
+      return { url, key, previewUrl: url };
+    }
+
+    const key = `Avatars/${user.id}/${user.id}_${user.version + 1}.png`;
     const params = {
       Bucket: process.env.SERVER_AWS_BUCKET_NAME,
-      Key: `Avatars/${user.id}/${user.id}.png`,
+      Key: key,
     };
 
-    return getSignedUrl(this.s3, this.getCommand(operation, params), {
-      expiresIn: 60 * 60,
-    });
+    const url = await getSignedUrl(
+      this.s3,
+      this.getCommand(operation, params),
+      {
+        expiresIn: 60 * 60,
+      },
+    );
+
+    const previewUrl = await getSignedUrl(
+      this.s3,
+      this.getCommand(Operation.GET, params),
+      { expiresIn: 60 * 60 },
+    );
+
+    return {
+      previewUrl,
+      url,
+      key,
+    };
   }
 
   /**
@@ -144,13 +191,36 @@ export class StorageService {
       Bucket: process.env.SERVER_AWS_BUCKET_NAME,
       Key: avatarKey,
     };
-
     try {
       await this.s3.send(new HeadObjectCommand(params));
       return true;
     } catch (error) {
       return false;
     }
+  }
+
+  /**
+   * Upload avatar to S3. This method is used for auto generated avatars
+   * @param user
+   * @param avatarData
+   */
+  async uploadAvatar(
+    userId: string,
+    avatarData: any,
+  ): Promise<{ url: string; key: string }> {
+    const params = {
+      Bucket: process.env.SERVER_AWS_BUCKET_NAME,
+      Key: `Avatars/${userId}/${userId}.png`,
+      ContentType: 'image/png',
+      Body: Buffer.from(avatarData, 'base64'),
+    };
+    await this.s3.send(new PutObjectCommand(params));
+
+    const url = process.env.SERVER_AWS_PUBLIC_URL + '/' + params.Key;
+    return {
+      url,
+      key: params.Key,
+    };
   }
 
   /**
@@ -168,5 +238,13 @@ export class StorageService {
       case Operation.PUT:
         return new PutObjectCommand(params);
     }
+  }
+
+  deleteFile(key: string) {
+    const params = {
+      Bucket: process.env.SERVER_AWS_BUCKET_NAME,
+      Key: key,
+    };
+    return this.s3.send(new DeleteObjectCommand(params));
   }
 }
