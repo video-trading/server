@@ -13,7 +13,7 @@ import {
 import { Prisma, Video, VideoStatus } from '@prisma/client';
 import { Pagination, PaginationSchema } from '../common/pagination';
 import { TranscodingService } from '../transcoding/transcoding.service';
-import { StorageService } from '../storage/storage.service';
+import { SignedUrl, StorageService } from '../storage/storage.service';
 
 import { VideoService } from './video.service';
 import { InjectAMQPChannel } from '@enriqcg/nestjs-amqp';
@@ -30,6 +30,8 @@ import { CreateAnalyzingResult } from './dto/create-analyzing.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth-guard';
 import { config } from '../common/utils/config/config';
 import { GetVideoDto } from './dto/get-video.dto';
+import { UpdateVideoDto } from './dto/update-video.dto';
+import { RequestWithUser } from '../common/types';
 
 @Controller('video')
 @ApiTags('video')
@@ -50,26 +52,24 @@ export class VideoController {
   async create(
     @Body() video: CreateVideoDto,
     @Request() req,
-  ): Promise<{ video: Video; preSignedURL: string }> {
+  ): Promise<{ video: Video; preSignedURL: SignedUrl }> {
     const createdVideo = await this.videoService.create(video, req.user.userId);
     const preSignedURL = await this.storageService.generatePreSignedUrlForVideo(
       createdVideo,
     );
     return {
       video: createdVideo,
-      preSignedURL,
+      preSignedURL: preSignedURL,
     };
   }
 
   @UseGuards(JwtAuthGuard)
   @Post(':id/analyzing')
-  async startAnalyzing(@Param('id') id: string) {
+  async startAnalyzing(@Param('id') id: string, @Request() req) {
     const video = await this.videoService.findOne(id);
-    const exist = await this.storageService.checkIfVideoExists(video);
-    if (!exist) {
-      throw new HttpException("Video doesn't exist", 400);
-    }
-    await this.videoService.update(id, { status: VideoStatus.ANALYZING });
+    await this.videoService.update(id, req.user.userId, {
+      status: VideoStatus.ANALYZING,
+    });
     const success = this.amqpChannel.publish(
       'video',
       'analyzing',
@@ -117,8 +117,13 @@ export class VideoController {
 
   @UseGuards(JwtAuthGuard)
   @Patch(':id')
-  update(@Param('id') id: string, @Body() data: Prisma.VideoUpdateInput) {
-    return this.videoService.update(id, data);
+  update(
+    @Param('id') id: string,
+    @Body() data: UpdateVideoDto,
+    @Request() req: RequestWithUser,
+  ) {
+    delete data.status;
+    return this.videoService.update(id, req.user.userId, data);
   }
 
   @UseGuards(JwtAuthGuard)
@@ -136,6 +141,7 @@ export class VideoController {
   async submitAnalyingResult(
     @Param('id') id: string,
     @Body() result: CreateAnalyzingResult,
+    @Request() req: RequestWithUser,
   ) {
     const analyzingResult = await this.videoService.submitAnalyzingResult(
       id,
@@ -150,7 +156,9 @@ export class VideoController {
       'transcoding',
       Buffer.from(JSON.stringify(transodings)),
     );
-    await this.videoService.update(id, { status: VideoStatus.TRANSCODING });
+    await this.videoService.update(id, req.user.userId, {
+      status: VideoStatus.TRANSCODING,
+    });
     return transodings;
   }
 }

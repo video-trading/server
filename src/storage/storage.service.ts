@@ -112,15 +112,25 @@ export class StorageService {
   async generatePreSignedUrlForVideo(
     video: Video,
     operation: Operation = Operation.PUT,
-  ) {
+  ): Promise<SignedUrl> {
     const params = {
       Bucket: process.env.SERVER_AWS_BUCKET_NAME,
       Key: this.getUploadVideoKey(video),
     };
 
-    return getSignedUrl(this.s3, this.getCommand(operation, params), {
-      expiresIn: 60 * 60,
-    });
+    const signedUrl = await getSignedUrl(
+      this.s3,
+      this.getCommand(operation, params),
+      {
+        expiresIn: 60 * 60,
+      },
+    );
+
+    return {
+      url: signedUrl,
+      key: params.Key,
+      previewUrl: signedUrl,
+    };
   }
 
   /**
