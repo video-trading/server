@@ -1,4 +1,8 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { AnalyzingResult, Prisma, VideoStatus } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
 import { CreateAnalyzingResult } from './dto/create-analyzing.dto';
@@ -6,6 +10,7 @@ import { CreateVideoDto } from './dto/create-video.dto';
 import { config } from '../common/utils/config/config';
 import { getPaginationMetaData } from '../common/pagination';
 import { Operation, StorageService } from '../storage/storage.service';
+import { UpdateVideoDto } from './dto/update-video.dto';
 
 @Injectable()
 export class VideoService {
@@ -15,6 +20,7 @@ export class VideoService {
     return this.prisma.video.create({
       data: {
         ...video,
+        status: VideoStatus.UPLOADING,
         User: {
           connect: {
             id: user,
@@ -43,6 +49,9 @@ export class VideoService {
       where: {
         id,
       },
+      include: {
+        SalesInfo: true,
+      },
     });
 
     return {
@@ -57,12 +66,50 @@ export class VideoService {
     };
   }
 
-  update(id: string, data: Prisma.VideoUpdateInput) {
+  async update(id: string, userId: string, data: UpdateVideoDto) {
+    const video = await this.prisma.video.findUnique({
+      where: {
+        id,
+      },
+    });
+
+    if (video?.userId !== userId) {
+      throw new UnauthorizedException();
+    }
+
+    if (video.status === VideoStatus.UPLOADING && data.status === undefined) {
+      // if user update video key, we need to check if the video is ready
+      const exists = await this.storage.checkIfVideoExists(video);
+      if (exists) {
+        data.status = VideoStatus.UPLOADED;
+      }
+    }
+
+    if (data.SalesInfo === null) {
+      // delete sales info
+      await this.prisma.salesInfo.delete({
+        where: {
+          videoId: id,
+        },
+      });
+    }
+
     return this.prisma.video.update({
       where: {
         id,
       },
-      data,
+      data: {
+        ...data,
+        SalesInfo: {
+          create: data.SalesInfo || undefined,
+        },
+        version: {
+          increment: 1,
+        },
+      },
+      include: {
+        SalesInfo: true,
+      },
     });
   }
 

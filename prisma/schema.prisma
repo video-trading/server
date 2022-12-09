@@ -87,6 +87,21 @@ model Video {
   Playlist        Playlist?        @relation(fields: [playlistId], references: [id])
   playlistId      String?          @db.ObjectId
   status          VideoStatus      @default(UPLOADING)
+  SalesInfo       SalesInfo?
+
+  version Int @default(0)
+}
+
+model SalesInfo {
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  createdAt DateTime  @default(now())
+  updatedAt DateTime? @updatedAt
+  // price
+  price     Int
+  tokenId   String?   @unique
+  // video
+  Video     Video     @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  videoId   String    @unique
 }
 
 model Comment {
@@ -124,6 +139,7 @@ model Transcoding {
 
 enum VideoStatus {
   UPLOADING
+  UPLOADED
   ANALYZING
   TRANSCODING
   READY

@@ -32,4 +32,6 @@ export class GetVideoDto implements Video {
   userId: string;
   @ApiProperty()
   playlistId: string;
+  @ApiProperty()
+  version: number;
 }

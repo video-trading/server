@@ -10,6 +10,7 @@ import { TranscodingService } from '../transcoding/transcoding.service';
 import { VideoController } from './video.controller';
 import { VideoService } from './video.service';
 import { CreateVideoDto } from './dto/create-video.dto';
+import { VideoStatus } from '@prisma/client';
 
 jest.mock('aws-sdk', () => ({
   S3: require('../utils/test-utils/aws-sdk.mock').S3,
@@ -83,10 +84,37 @@ describe('VideoController', () => {
     expect(videos.items).toHaveLength(1);
     expect(videos.items.length).toBe(1);
 
-    const updatedVideo = await controller.update(videos.items[0].id, {
-      title: 'Updated Video',
-    });
+    const updatedVideo = await controller.update(
+      videos.items[0].id,
+      {
+        title: 'Updated Video',
+      },
+      { user: { userId } },
+    );
     expect(updatedVideo.title).toBe('Updated Video');
+  });
+
+  it('Should prevent user to update video status', async () => {
+    const video: CreateVideoDto = {
+      description: '',
+      title: 'Test Video',
+      fileName: 'test-video.mp4',
+    };
+
+    await controller.create(video, { user: { userId } });
+    const videos = await controller.findAll();
+    expect(videos.items).toHaveLength(1);
+    expect(videos.items.length).toBe(1);
+
+    const updatedVideo = await controller.update(
+      videos.items[0].id,
+      {
+        title: 'Updated Video',
+        status: VideoStatus.READY,
+      },
+      { user: { userId } },
+    );
+    expect(updatedVideo.status).toBe(VideoStatus.UPLOADING);
   });
 
   it('Should be able to submit transcoding request', async () => {
@@ -100,7 +128,9 @@ describe('VideoController', () => {
     const analyzeResult: any = {
       quality: VideoQuality.Quality360p,
     };
-    await controller.submitAnalyingResult(result.video.id, analyzeResult);
+    await controller.submitAnalyingResult(result.video.id, analyzeResult, {
+      user: { userId },
+    });
     expect(await prisma.transcoding.count()).toBe(3);
   });
 });

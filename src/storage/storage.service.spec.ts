@@ -35,6 +35,7 @@ describe('StorageService', () => {
       userId: '',
       playlistId: '',
       status: VideoStatus.UPLOADING,
+      version: 0,
     });
 
     expect(preSignedURL).toBeDefined();
