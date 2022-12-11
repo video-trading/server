@@ -7,6 +7,7 @@ import jwt from 'jsonwebtoken';
 import { Environments } from '../src/common/environment';
 import { UserService } from '../src/user/user.service';
 import { PrismaService } from '../src/prisma.service';
+import { VideoService } from '../src/video/video.service';
 
 jest.mock('axios', () => ({
   get: jest.fn().mockImplementation(),
@@ -42,6 +43,7 @@ describe('AppController (e2e)', () => {
   let accessKey: string;
   let userId: string;
   let prisma: PrismaService;
+  let videoService: VideoService;
 
   beforeAll(async () => {
     mongod = await MongoMemoryReplSet.create({
@@ -62,6 +64,8 @@ describe('AppController (e2e)', () => {
     app = moduleFixture.createNestApplication();
 
     const userService = moduleFixture.get<UserService>(UserService);
+    videoService = moduleFixture.get<VideoService>(VideoService);
+
     prisma = moduleFixture.get<PrismaService>(PrismaService);
 
     const user = await userService.create({
@@ -150,9 +154,24 @@ describe('AppController (e2e)', () => {
         expect(response.body).toHaveProperty('fileName', 'test.mov');
       });
 
+    // update video by id
+    await request(app.getHttpServer())
+      .patch(`/video/${videoId}`)
+      .set('Authorization', `Bearer ${accessKey}`)
+      .send({
+        title: 'Updated Video',
+        description: 'Updated Video',
+      })
+      .expect(200)
+      .expect((response) => {
+        expect(response.body).toHaveProperty('id', videoId);
+        expect(response.body).toHaveProperty('title', 'Updated Video');
+        expect(response.body).toHaveProperty('fileName', 'test.mov');
+      });
+
     // start analyzing process
     await request(app.getHttpServer())
-      .post(`/video/${videoId}/analyzing`)
+      .post(`/video/${videoId}/publish`)
       .set('Authorization', `Bearer ${accessKey}`)
       .expect(201)
       .expect((response) => {
@@ -245,5 +264,35 @@ describe('AppController (e2e)', () => {
         videoId: videoId,
       })
       .expect(200);
+  });
+
+  it('Should be able to get videos by page', async () => {
+    // create 30 videos
+    for (let i = 0; i < 30; i++) {
+      await request(app.getHttpServer())
+        .post('/video')
+        .set('Authorization', `Bearer ${accessKey}`)
+        .send({
+          title: 'Test Video',
+          fileName: 'test.mov',
+          description: 'Test Video',
+        })
+        .expect(201);
+    }
+
+    // get videos by page
+    await request(app.getHttpServer())
+      .get('/video?page=1')
+      .expect(200)
+      .expect((response) => {
+        expect(response.body.metadata.page).toBe(1);
+      });
+
+    await request(app.getHttpServer())
+      .get('/video?page=2')
+      .expect(200)
+      .expect((response) => {
+        expect(response.body.metadata.page).toBe(2);
+      });
   });
 });

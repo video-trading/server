@@ -9,6 +9,9 @@ import {
   Post,
   UseGuards,
   Request,
+  BadRequestException,
+  Query,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { Prisma, Video, VideoStatus } from '@prisma/client';
 import { Pagination, PaginationSchema } from '../common/pagination';
@@ -19,10 +22,13 @@ import { VideoService } from './video.service';
 import { InjectAMQPChannel } from '@enriqcg/nestjs-amqp';
 import { Channel } from 'amqplib';
 import {
+  ApiBadRequestResponse,
+  ApiBearerAuth,
   ApiCreatedResponse,
   ApiExtraModels,
   ApiOkResponse,
   ApiTags,
+  ApiUnauthorizedResponse,
   getSchemaPath,
 } from '@nestjs/swagger';
 import { CreateVideoDto } from './dto/create-video.dto';
@@ -64,9 +70,35 @@ export class VideoController {
   }
 
   @UseGuards(JwtAuthGuard)
-  @Post(':id/analyzing')
-  async startAnalyzing(@Param('id') id: string, @Request() req) {
+  @Post(':id/publish')
+  @ApiBearerAuth()
+  @ApiOkResponse({
+    description:
+      "Will publish the video and set the video's status to ANALYZING",
+    schema: {
+      type: 'object',
+      properties: {
+        success: {
+          type: 'boolean',
+          description: 'Whether the message was published successfully',
+        },
+      },
+    },
+  })
+  @ApiBadRequestResponse({
+    description: 'Video not found or video status is not in uploaded status',
+  })
+  @ApiUnauthorizedResponse({
+    description: "Unauthorized. You don't have access to this video",
+  })
+  async startAnalyzing(
+    @Param('id') id: string,
+    @Request() req: RequestWithUser,
+  ) {
     const video = await this.videoService.findOne(id);
+    if (video.status !== VideoStatus.UPLOADED) {
+      throw new BadRequestException('Video is not in uploaded status');
+    }
     await this.videoService.update(id, req.user.userId, {
       status: VideoStatus.ANALYZING,
     });
@@ -76,7 +108,7 @@ export class VideoController {
       Buffer.from(JSON.stringify(video)),
     );
 
-    return { success };
+    return { success: Boolean(success) };
   }
 
   @Get()
@@ -103,10 +135,23 @@ export class VideoController {
     },
   })
   async findAll(
-    @Param('page') page: number = config.defaultStartingPage,
-    @Param('per') limit: number = config.numberOfItemsPerPage,
+    @Query('page') page: string | undefined,
+    @Query('per') limit: string | undefined,
   ): Promise<Pagination<Video>> {
-    const videos = await this.videoService.findAll(page, limit);
+    // parse page and per to number
+    const pageInt = page ? parseInt(page) : config.defaultStartingPage;
+    const limitInt = limit ? parseInt(limit) : config.numberOfItemsPerPage;
+
+    // if page or per is not a number, throw an error
+    if (isNaN(pageInt) || isNaN(limitInt)) {
+      throw new BadRequestException('page and per must be a number');
+    }
+    // if page or per is less than 1, throw an error
+    if (pageInt < 1 || limitInt < 1) {
+      throw new BadRequestException('page and per must be greater than 0');
+    }
+
+    const videos = await this.videoService.findAll(pageInt, limitInt);
     return videos;
   }
 
@@ -117,6 +162,11 @@ export class VideoController {
 
   @UseGuards(JwtAuthGuard)
   @Patch(':id')
+  @ApiBearerAuth()
+  @ApiOkResponse({
+    description: 'Update video info',
+    type: UpdateVideoDto,
+  })
   update(
     @Param('id') id: string,
     @Body() data: UpdateVideoDto,
