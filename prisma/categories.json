@@ -1,0 +1,33 @@
+[
+  {
+    "name": "Daily",
+    "subCategories": [
+      {
+        "name": "Diary"
+      },
+      {
+        "name": "Journal"
+      },{
+        "name": "Short Video"
+      }
+    ]
+  },{
+    "name": "Travel",
+    "subCategories": [
+      {
+        "name":  "Backpack"
+      }, {
+        "name": "Vlog"
+      }
+    ]
+  },{
+    "name": "Food",
+    "subCategories": [
+      {
+        "name": "Cooking"
+      }, {
+        "name": "Recipe"
+      }
+    ]
+  }
+]

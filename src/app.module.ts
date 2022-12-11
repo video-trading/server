@@ -11,6 +11,7 @@ import { Environments } from './common/environment';
 import { AuthModule } from './auth/auth.module';
 import { BlockchainService } from './blockchain/blockchain.service';
 import { PlaylistModule } from './playlist/playlist.module';
+import { CategoryModule } from './category/category.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { PlaylistModule } from './playlist/playlist.module';
     TranscodingModule,
     UserModule,
     PlaylistModule,
+    CategoryModule,
   ],
   controllers: [AppController],
   providers: [AppService, BlockchainService],
