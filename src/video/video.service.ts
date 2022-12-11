@@ -30,10 +30,16 @@ export class VideoService {
     });
   }
 
-  findAll(page: number, per: number = config.numberOfItemsPerPage) {
+  findAll(
+    page: number = config.defaultStartingPage,
+    per: number = config.numberOfItemsPerPage,
+  ) {
     const videos = this.prisma.video.findMany({
       skip: (page - 1) * per,
       take: per,
+      // where: {
+      //   status: VideoStatus.READY,
+      // },
     });
 
     const total = this.prisma.video.count();

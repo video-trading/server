@@ -80,7 +80,7 @@ describe('VideoController', () => {
 
     const result = await controller.create(video, { user: { userId } });
     expect(result.preSignedURL).toBeDefined();
-    const videos = await controller.findAll();
+    const videos = await controller.findAll('1', '10');
     expect(videos.items).toHaveLength(1);
     expect(videos.items.length).toBe(1);
 
@@ -94,6 +94,23 @@ describe('VideoController', () => {
     expect(updatedVideo.title).toBe('Updated Video');
   });
 
+  it('Should be able to find all', async () => {
+    let videos = await controller.findAll('2', '1');
+    expect(videos.items).toHaveLength(0);
+    videos = await controller.findAll(undefined, '1');
+    expect(videos.items).toHaveLength(0);
+    videos = await controller.findAll(undefined, undefined);
+    expect(videos.items).toHaveLength(0);
+    videos = await controller.findAll('', '');
+    expect(videos.items).toHaveLength(0);
+  });
+
+  it('Should not be able to find all', async () => {
+    await expect(() => controller.findAll('0', '1')).rejects.toThrow();
+    await expect(() => controller.findAll('0', 'a')).rejects.toThrow();
+    await expect(() => controller.findAll('a', '1')).rejects.toThrow();
+  });
+
   it('Should prevent user to update video status', async () => {
     const video: CreateVideoDto = {
       description: '',
@@ -102,7 +119,7 @@ describe('VideoController', () => {
     };
 
     await controller.create(video, { user: { userId } });
-    const videos = await controller.findAll();
+    const videos = await controller.findAll('1', '10');
     expect(videos.items).toHaveLength(1);
     expect(videos.items.length).toBe(1);
 
