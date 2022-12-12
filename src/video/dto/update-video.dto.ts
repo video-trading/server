@@ -31,11 +31,6 @@ export class UpdateVideoDto {
   description?: string;
 
   @ApiProperty()
-  @IsEnum(VideoStatus)
-  @IsOptional()
-  status?: VideoStatus;
-
-  @ApiProperty()
   @IsOptional()
   SalesInfo?: CreateSalesInfoDto;
 }

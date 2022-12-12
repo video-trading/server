@@ -10,10 +10,10 @@ async function addCategories() {
       },
     });
 
-    await prisma.subcategory.createMany({
+    await prisma.category.createMany({
       data: category.subCategories.map((subCategory) => ({
         name: subCategory.name,
-        categoryId: createdCategory.id,
+        parentId: createdCategory.id,
       })),
     });
   }

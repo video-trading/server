@@ -168,6 +168,10 @@ describe('AppController (e2e)', () => {
         expect(response.body).toHaveProperty('title', 'Updated Video');
         expect(response.body).toHaveProperty('fileName', 'test.mov');
       });
+    await request(app.getHttpServer())
+      .patch(`/video/${videoId}/uploaded`)
+      .set('Authorization', `Bearer ${accessKey}`)
+      .expect(200);
 
     // start analyzing process
     await request(app.getHttpServer())
@@ -209,6 +213,39 @@ describe('AppController (e2e)', () => {
       .expect(200)
       .expect((response) => {
         expect(response.body.status).toBe('COMPLETED');
+      });
+  });
+
+  it("Should be able to update video's sales info", async () => {
+    const response = await request(app.getHttpServer())
+      .post('/video')
+      .set('Authorization', `Bearer ${accessKey}`)
+      .send({
+        title: 'Test Video',
+        fileName: 'test.mov',
+        description: 'Test Video',
+      });
+
+    const videoId = response.body.video.id;
+
+    await request(app.getHttpServer())
+      .patch(`/video/${videoId}/uploaded`)
+      .set('Authorization', `Bearer ${accessKey}`)
+      .expect(200);
+
+    await request(app.getHttpServer())
+      .post(`/video/${videoId}/publish`)
+      .set('Authorization', `Bearer ${accessKey}`)
+      .send({
+        SalesInfo: {
+          price: 100,
+        },
+        title: 'Test Video',
+        description: 'Test Video',
+      })
+      .expect(201)
+      .expect((response) => {
+        expect(response.body).toHaveProperty('success');
       });
   });
 

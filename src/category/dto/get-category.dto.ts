@@ -2,6 +2,8 @@ import { Category } from '@prisma/client';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class GetCategoryDto implements Category {
+  parentId: string;
+
   @ApiProperty({
     description: 'The id of the category',
   })

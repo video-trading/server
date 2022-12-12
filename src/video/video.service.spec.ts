@@ -137,6 +137,40 @@ describe('VideoService', () => {
     expect(updatedVideo.SalesInfo.price).toBe(20);
   });
 
+  it('Should be able to publish video with sales info', async () => {
+    const video: CreateVideoDto = {
+      title: 'Test Video',
+      fileName: 'test-video.mp4',
+      description: '',
+    };
+    await service.create(video, userId);
+
+    const videos = await service.findAll(1);
+    expect(videos.items).toHaveLength(1);
+    expect(await service.count()).toBe(1);
+
+    const updatedVideo = await service.update(videos.items[0].id, userId, {
+      title: 'Updated Video',
+      SalesInfo: {
+        price: 20,
+        tokenId: '20',
+      },
+    });
+
+    await service.onVideoUploaded(updatedVideo.id);
+
+    const publishedVideo = await service.publish(updatedVideo.id, {
+      description: 'HHH',
+      title: 'Hello world',
+      SalesInfo: {
+        price: 30,
+      },
+    });
+
+    expect(publishedVideo.title).toBe('Hello world');
+    expect(publishedVideo.SalesInfo.price).toBe(30);
+  });
+
   it('Should be able to update video and delete sales info', async () => {
     const video: CreateVideoDto = {
       title: 'Test Video',
@@ -146,11 +180,18 @@ describe('VideoService', () => {
     const createdVideo = await service.create(video, userId);
     expect(createdVideo.status).toBe(VideoStatus.UPLOADING);
 
+    await service.onVideoUploaded(createdVideo.id);
     await service.update(createdVideo.id, userId, {
       title: 'Updated Video',
       SalesInfo: {
         price: 20,
-        tokenId: '20',
+      },
+    });
+
+    await service.update(createdVideo.id, userId, {
+      title: 'Updated Video',
+      SalesInfo: {
+        price: 30,
       },
     });
 
@@ -160,27 +201,6 @@ describe('VideoService', () => {
     expect(updatedVideo.title).toBe('Updated Video');
     expect(updatedVideo.SalesInfo).toBeNull();
     expect(updatedVideo.status).toBe(VideoStatus.UPLOADED);
-  });
-
-  it('Should not change video status if video status is not uploaded', async () => {
-    const video: CreateVideoDto = {
-      title: 'Test Video',
-      fileName: 'test-video.mp4',
-      description: '',
-    };
-    const createdVideo = await service.create(video, userId);
-
-    await service.update(createdVideo.id, userId, {
-      title: 'Updated Video',
-      status: VideoStatus.READY,
-    });
-
-    const updatedVideo = await service.update(createdVideo.id, userId, {
-      title: 'Updated Video',
-    });
-
-    expect(updatedVideo.title).toBe('Updated Video');
-    expect(updatedVideo.status).toBe(VideoStatus.READY);
   });
 
   it('Should be able to delete video', async () => {
@@ -228,22 +248,34 @@ describe('VideoService', () => {
     expect(foundVideo).toBeDefined();
     expect(foundVideo.url).not.toBeDefined();
 
-    await service.update(video.id, userId, { status: VideoStatus.UPLOADING });
+    await prisma.video.update({
+      where: { id: video.id },
+      data: { status: VideoStatus.UPLOADED },
+    });
     foundVideo = await service.findOne(video.id);
     expect(foundVideo).toBeDefined();
     expect(foundVideo.url).not.toBeDefined();
 
-    await service.update(video.id, userId, { status: VideoStatus.TRANSCODING });
+    await prisma.video.update({
+      where: { id: video.id },
+      data: { status: VideoStatus.FAILED },
+    });
     foundVideo = await service.findOne(video.id);
     expect(foundVideo).toBeDefined();
     expect(foundVideo.url).not.toBeDefined();
 
-    await service.update(video.id, userId, { status: VideoStatus.FAILED });
+    await prisma.video.update({
+      where: { id: video.id },
+      data: { status: VideoStatus.TRANSCODING },
+    });
     foundVideo = await service.findOne(video.id);
     expect(foundVideo).toBeDefined();
     expect(foundVideo.url).not.toBeDefined();
 
-    await service.update(video.id, userId, { status: VideoStatus.READY });
+    await prisma.video.update({
+      where: { id: video.id },
+      data: { status: VideoStatus.READY },
+    });
     foundVideo = await service.findOne(video.id);
     expect(foundVideo).toBeDefined();
     expect(foundVideo.url).toBeDefined();

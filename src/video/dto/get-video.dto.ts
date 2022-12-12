@@ -2,6 +2,7 @@ import { Video, VideoStatus } from '@prisma/client';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class GetVideoDto implements Video {
+  subcategoryId: string;
   @ApiProperty({
     enum: VideoStatus,
   })
