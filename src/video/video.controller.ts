@@ -12,6 +12,7 @@ import {
   BadRequestException,
   Query,
   ParseIntPipe,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { Prisma, Video, VideoStatus } from '@prisma/client';
 import { Pagination, PaginationSchema } from '../common/pagination';
@@ -38,6 +39,7 @@ import { config } from '../common/utils/config/config';
 import { GetVideoDto } from './dto/get-video.dto';
 import { UpdateVideoDto } from './dto/update-video.dto';
 import { RequestWithUser } from '../common/types';
+import { PublishVideoDto } from './dto/publish-video.dto';
 
 @Controller('video')
 @ApiTags('video')
@@ -91,17 +93,14 @@ export class VideoController {
   @ApiUnauthorizedResponse({
     description: "Unauthorized. You don't have access to this video",
   })
-  async startAnalyzing(
+  async publish(
     @Param('id') id: string,
+    @Body() data: PublishVideoDto,
     @Request() req: RequestWithUser,
   ) {
     const video = await this.videoService.findOne(id);
-    if (video.status !== VideoStatus.UPLOADED) {
-      throw new BadRequestException('Video is not in uploaded status');
-    }
-    await this.videoService.update(id, req.user.userId, {
-      status: VideoStatus.ANALYZING,
-    });
+    await this.videoService.permissionCheck(video, req.user.userId);
+    await this.videoService.publish(id, data);
     const success = this.amqpChannel.publish(
       'video',
       'analyzing',
@@ -137,6 +136,7 @@ export class VideoController {
   async findAll(
     @Query('page') page: string | undefined,
     @Query('per') limit: string | undefined,
+    @Query('category') category: string | undefined,
   ): Promise<Pagination<Video>> {
     // parse page and per to number
     const pageInt = page ? parseInt(page) : config.defaultStartingPage;
@@ -151,7 +151,11 @@ export class VideoController {
       throw new BadRequestException('page and per must be greater than 0');
     }
 
-    const videos = await this.videoService.findAll(pageInt, limitInt);
+    if (category?.length === 0) {
+      category = undefined;
+    }
+
+    const videos = await this.videoService.findAll(pageInt, limitInt, category);
     return videos;
   }
 
@@ -167,13 +171,26 @@ export class VideoController {
     description: 'Update video info',
     type: UpdateVideoDto,
   })
-  update(
+  async update(
     @Param('id') id: string,
     @Body() data: UpdateVideoDto,
     @Request() req: RequestWithUser,
   ) {
-    delete data.status;
+    const video = await this.videoService.findOne(id);
+    await this.videoService.permissionCheck(video, req.user.userId);
     return this.videoService.update(id, req.user.userId, data);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch(':id/uploaded')
+  @ApiBearerAuth()
+  @ApiOkResponse({
+    description: 'Change video status to uploaded',
+  })
+  async onUploaded(@Param('id') id: string, @Request() req: RequestWithUser) {
+    const video = await this.videoService.findOne(id);
+    await this.videoService.permissionCheck(video, req.user.userId);
+    return this.videoService.onVideoUploaded(id);
   }
 
   @UseGuards(JwtAuthGuard)
@@ -206,9 +223,7 @@ export class VideoController {
       'transcoding',
       Buffer.from(JSON.stringify(transodings)),
     );
-    await this.videoService.update(id, req.user.userId, {
-      status: VideoStatus.TRANSCODING,
-    });
+    await this.videoService.startTranscoding(id);
     return transodings;
   }
 }

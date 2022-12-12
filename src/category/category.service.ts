@@ -7,8 +7,11 @@ export class CategoryService {
 
   findAll() {
     return this.prisma.category.findMany({
+      where: {
+        parent: null,
+      },
       include: {
-        Subcategory: true,
+        subCategories: true,
       },
     });
   }

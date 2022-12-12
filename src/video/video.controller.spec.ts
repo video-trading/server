@@ -12,10 +12,28 @@ import { VideoService } from './video.service';
 import { CreateVideoDto } from './dto/create-video.dto';
 import { VideoStatus } from '@prisma/client';
 
-jest.mock('aws-sdk', () => ({
-  S3: require('../utils/test-utils/aws-sdk.mock').S3,
-}));
+jest.mock('@aws-sdk/client-s3', () => {
+  return {
+    HeadObjectCommand: jest.fn().mockImplementation(),
+    PutObjectCommand: jest.fn().mockImplementation(),
+    GetObjectCommand: jest.fn().mockImplementation(),
+    DeleteObjectCommand: jest.fn().mockImplementation(),
+    S3Client: jest.fn().mockImplementation(() => {
+      return {
+        send: jest.fn().mockImplementation(),
+      };
+    }),
+  };
+});
 
+jest.mock('@aws-sdk/s3-request-presigner', () => {
+  return {
+    getSignedUrl: jest
+      .fn()
+      .mockImplementation()
+      .mockReturnValue('https://example.com'),
+  };
+});
 describe('VideoController', () => {
   let controller: VideoController;
   let mongod: MongoMemoryReplSet;
@@ -80,7 +98,7 @@ describe('VideoController', () => {
 
     const result = await controller.create(video, { user: { userId } });
     expect(result.preSignedURL).toBeDefined();
-    const videos = await controller.findAll('1', '10');
+    const videos = await controller.findAll('1', '10', undefined);
     expect(videos.items).toHaveLength(1);
     expect(videos.items.length).toBe(1);
 
@@ -95,43 +113,168 @@ describe('VideoController', () => {
   });
 
   it('Should be able to find all', async () => {
-    let videos = await controller.findAll('2', '1');
+    let videos = await controller.findAll('2', '1', undefined);
     expect(videos.items).toHaveLength(0);
-    videos = await controller.findAll(undefined, '1');
+    videos = await controller.findAll(undefined, '1', undefined);
     expect(videos.items).toHaveLength(0);
-    videos = await controller.findAll(undefined, undefined);
+    videos = await controller.findAll(undefined, undefined, undefined);
     expect(videos.items).toHaveLength(0);
-    videos = await controller.findAll('', '');
+    videos = await controller.findAll('', '', undefined);
     expect(videos.items).toHaveLength(0);
   });
 
   it('Should not be able to find all', async () => {
-    await expect(() => controller.findAll('0', '1')).rejects.toThrow();
-    await expect(() => controller.findAll('0', 'a')).rejects.toThrow();
-    await expect(() => controller.findAll('a', '1')).rejects.toThrow();
+    await expect(() =>
+      controller.findAll('0', '1', undefined),
+    ).rejects.toThrow();
+    await expect(() =>
+      controller.findAll('0', 'a', undefined),
+    ).rejects.toThrow();
+    await expect(() =>
+      controller.findAll('a', '1', undefined),
+    ).rejects.toThrow();
   });
 
-  it('Should prevent user to update video status', async () => {
-    const video: CreateVideoDto = {
-      description: '',
-      title: 'Test Video',
-      fileName: 'test-video.mp4',
-    };
-
-    await controller.create(video, { user: { userId } });
-    const videos = await controller.findAll('1', '10');
-    expect(videos.items).toHaveLength(1);
-    expect(videos.items.length).toBe(1);
-
-    const updatedVideo = await controller.update(
-      videos.items[0].id,
-      {
-        title: 'Updated Video',
-        status: VideoStatus.READY,
+  it('Should not be able to find all by category', async () => {
+    const category = await prisma.category.create({
+      data: {
+        name: 'test',
       },
-      { user: { userId } },
-    );
-    expect(updatedVideo.status).toBe(VideoStatus.UPLOADING);
+    });
+
+    const category2 = await prisma.category.create({
+      data: {
+        name: 'test2',
+      },
+    });
+
+    await prisma.video.create({
+      data: {
+        title: 'Test Video',
+        description: '',
+        fileName: 'test-video.mp4',
+        status: VideoStatus.READY,
+        Category: {
+          connect: {
+            id: category.id,
+          },
+        },
+        User: {
+          connect: {
+            id: userId,
+          },
+        },
+      },
+    });
+
+    await prisma.video.create({
+      data: {
+        title: 'Test Video 2',
+        description: '',
+        fileName: 'test-video.mp4',
+        status: VideoStatus.READY,
+        Category: {
+          connect: {
+            id: category2.id,
+          },
+        },
+        User: {
+          connect: {
+            id: userId,
+          },
+        },
+      },
+    });
+
+    let videos = await controller.findAll('1', '1', category.id);
+    expect(videos.items).toHaveLength(1);
+    expect(videos.metadata.total).toBe(1);
+
+    videos = await controller.findAll('1', '1', category2.id);
+    expect(videos.items).toHaveLength(1);
+    expect(videos.metadata.total).toBe(1);
+  });
+
+  it('Should not be able to find all by category within the subcategories', async () => {
+    const category = await prisma.category.create({
+      data: {
+        name: 'test',
+      },
+    });
+
+    const category2 = await prisma.category.create({
+      data: {
+        name: 'test2',
+      },
+    });
+
+    const category3 = await prisma.category.create({
+      data: {
+        name: 'test3',
+        parent: {
+          connect: {
+            id: category.id,
+          },
+        },
+      },
+    });
+
+    const category4 = await prisma.category.create({
+      data: {
+        name: 'test4',
+        parent: {
+          connect: {
+            id: category2.id,
+          },
+        },
+      },
+    });
+
+    await prisma.video.create({
+      data: {
+        title: 'Test Video',
+        description: '',
+        fileName: 'test-video.mp4',
+        status: VideoStatus.READY,
+        Category: {
+          connect: {
+            id: category3.id,
+          },
+        },
+        User: {
+          connect: {
+            id: userId,
+          },
+        },
+      },
+    });
+
+    await prisma.video.create({
+      data: {
+        title: 'Test Video 2',
+        description: '',
+        fileName: 'test-video.mp4',
+        status: VideoStatus.READY,
+        Category: {
+          connect: {
+            id: category4.id,
+          },
+        },
+        User: {
+          connect: {
+            id: userId,
+          },
+        },
+      },
+    });
+
+    let videos = await controller.findAll('1', '1', category.id);
+    expect(videos.items).toHaveLength(1);
+    expect(videos.metadata.total).toBe(1);
+
+    videos = await controller.findAll('1', '1', category2.id);
+    expect(videos.items).toHaveLength(1);
+    expect(videos.metadata.total).toBe(1);
   });
 
   it('Should be able to submit transcoding request', async () => {
@@ -149,5 +292,28 @@ describe('VideoController', () => {
       user: { userId },
     });
     expect(await prisma.transcoding.count()).toBe(3);
+  });
+
+  it('Should be able to publish transcoding request', async () => {
+    const video: CreateVideoDto = {
+      description: '',
+      title: 'Test Video',
+      fileName: 'test-video.mp4',
+    };
+
+    const result = await controller.create(video, { user: { userId } });
+    await controller.onUploaded(result.video.id, { user: { userId } });
+    await controller.publish(
+      result.video.id,
+      {
+        title: 'Test Video',
+        description: 'Hello world',
+      },
+      { user: { userId } },
+    );
+    const updatedVideo = await prisma.video.findUnique({
+      where: { id: result.video.id },
+    });
+    expect(updatedVideo.status).toBe(VideoStatus.ANALYZING);
   });
 });

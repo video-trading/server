@@ -30,25 +30,29 @@ describe('CategoryController', () => {
     controller = module.get<CategoryController>(CategoryController);
     prisma = module.get<PrismaService>(PrismaService);
 
-    await prisma.category.create({
+    const category1 = await prisma.category.create({
       data: {
         name: 'category',
-        Subcategory: {
-          create: {
-            name: 'subcategory1',
-          },
-        },
       },
     });
 
     await prisma.category.create({
       data: {
+        name: 'category1-1',
+        parentId: category1.id,
+      },
+    });
+
+    const category2 = await prisma.category.create({
+      data: {
         name: 'category2',
-        Subcategory: {
-          create: {
-            name: 'subcategory1',
-          },
-        },
+      },
+    });
+
+    await prisma.category.create({
+      data: {
+        name: 'category2-1',
+        parentId: category2.id,
       },
     });
   });
@@ -58,5 +62,7 @@ describe('CategoryController', () => {
     expect(categories.length).toBe(2);
     expect(categories[0].name).toBe('category');
     expect(categories[1].name).toBe('category2');
+    expect(categories[0].subCategories.length).toBe(1);
+    expect(categories[1].subCategories.length).toBe(1);
   });
 });
