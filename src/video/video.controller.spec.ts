@@ -11,6 +11,7 @@ import { VideoController } from './video.controller';
 import { VideoService } from './video.service';
 import { CreateVideoDto } from './dto/create-video.dto';
 import { VideoStatus } from '@prisma/client';
+import { CreateAnalyzingResult } from './dto/create-analyzing.dto';
 
 jest.mock('@aws-sdk/client-s3', () => {
   return {
@@ -285,8 +286,20 @@ describe('VideoController', () => {
     };
 
     const result = await controller.create(video, { user: { userId } });
-    const analyzeResult: any = {
+    await controller.onUploaded(result.video.id, { user: { userId } });
+    await controller.publish(
+      result.video.id,
+      {
+        title: 'Test Video',
+        description: '',
+        SalesInfo: undefined,
+      },
+      { user: { userId } },
+    );
+    const analyzeResult: CreateAnalyzingResult = {
       quality: VideoQuality.Quality360p,
+      frameRate: '30',
+      length: 20,
     };
     await controller.submitAnalyingResult(result.video.id, analyzeResult, {
       user: { userId },

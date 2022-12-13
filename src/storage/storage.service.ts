@@ -10,6 +10,7 @@ import { Injectable } from '@nestjs/common';
 import { User, Video } from '@prisma/client';
 import { VideoQuality } from 'src/common/video';
 import * as process from 'process';
+import { config } from '../common/utils/config/config';
 
 export enum Operation {
   GET = 'getObject',
@@ -45,7 +46,11 @@ export class StorageService {
   }
 
   private getUploadVideoKey(video: Video) {
-    return `Uploads/${video.id}/${video.fileName}`;
+    return `Uploads/video/${video.id}/${video.fileName}`;
+  }
+
+  getUploadThumbnailKey(video: Video) {
+    return `Uploads/thumbnail/${video.id}/${video.id}.png`;
   }
 
   private getTranscodingVideoKey(video: Video, quality: VideoQuality) {
@@ -71,7 +76,7 @@ export class StorageService {
         this.s3,
         this.getCommand(operation, params),
         {
-          expiresIn: 60 * 60,
+          expiresIn: config.preSignedUrlExpiration,
         },
       );
       return { url, key, previewUrl: url };
@@ -122,14 +127,55 @@ export class StorageService {
       this.s3,
       this.getCommand(operation, params),
       {
-        expiresIn: 60 * 60,
+        expiresIn: config.preSignedUrlExpiration,
       },
+    );
+
+    const previewUrl = await getSignedUrl(
+      this.s3,
+      this.getCommand(Operation.GET, params),
+      { expiresIn: config.preSignedUrlExpiration },
     );
 
     return {
       url: signedUrl,
       key: params.Key,
-      previewUrl: signedUrl,
+      previewUrl: previewUrl,
+    };
+  }
+
+  /**
+   * Will get presigned url for thumbnail
+   * @param video
+   * @param operation
+   */
+  async generatePreSignedUrlForThumbnail(
+    video: Video,
+    operation: Operation = Operation.PUT,
+  ): Promise<SignedUrl> {
+    const params = {
+      Bucket: process.env.SERVER_AWS_BUCKET_NAME,
+      Key: this.getUploadThumbnailKey(video),
+    };
+
+    const signedUrl = await getSignedUrl(
+      this.s3,
+      this.getCommand(operation, params),
+      {
+        expiresIn: config.preSignedUrlExpiration,
+      },
+    );
+
+    const previewUrl = await getSignedUrl(
+      this.s3,
+      this.getCommand(Operation.GET, params),
+      { expiresIn: config.preSignedUrlExpiration },
+    );
+
+    return {
+      url: signedUrl,
+      key: params.Key,
+      previewUrl: previewUrl,
     };
   }
 
@@ -150,7 +196,7 @@ export class StorageService {
     };
 
     return getSignedUrl(this.s3, this.getCommand(operation, params), {
-      expiresIn: 60 * 60,
+      expiresIn: config.preSignedUrlExpiration,
     });
   }
 
@@ -162,6 +208,24 @@ export class StorageService {
     const params = {
       Bucket: process.env.SERVER_AWS_BUCKET_NAME,
       Key: this.getUploadVideoKey(video),
+    };
+
+    try {
+      await this.s3.send(new HeadObjectCommand(params));
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  /**
+   * Will check if upload video exists in S3
+   * @param video Video
+   */
+  async checkIfThumbnailExists(video: Video) {
+    const params = {
+      Bucket: process.env.SERVER_AWS_BUCKET_NAME,
+      Key: this.getUploadThumbnailKey(video),
     };
 
     try {

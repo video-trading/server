@@ -11,10 +11,6 @@ export class PublishVideoDto {
   @IsString()
   description: string;
 
-  // @ApiProperty()
-  // @IsString()
-  // categoryId: string;
-
   @ApiProperty()
   @IsOptional()
   SalesInfo?: CreateSalesInfoDto;
