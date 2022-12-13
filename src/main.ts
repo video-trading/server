@@ -3,6 +3,7 @@ import { AppModule } from './app.module';
 import { config } from 'dotenv';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ValidationPipe } from '@nestjs/common';
+import { AuthService } from './auth/auth.service';
 
 async function bootstrap() {
   config();
@@ -29,9 +30,15 @@ async function bootstrap() {
       'JWT-auth', // This name here is important for matching up with @ApiBearerAuth() in your controller!
     )
     .build();
+
   const document = SwaggerModule.createDocument(app, docConfig);
   SwaggerModule.setup('api', app, document);
 
+  // get auth token from mondule
+
+  const authService = app.get(AuthService);
+  const token = await authService.adminToken();
+  console.log('Admin token: ', token);
   await app.listen(3000);
 }
 

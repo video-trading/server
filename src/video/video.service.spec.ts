@@ -7,6 +7,7 @@ import { CreateVideoDto } from './dto/create-video.dto';
 import { BlockchainService } from '../blockchain/blockchain.service';
 import { StorageService } from '../storage/storage.service';
 import { VideoStatus } from '@prisma/client';
+import { VideoQuality } from '../common/video';
 
 jest.mock('@aws-sdk/client-s3', () => {
   return {
@@ -81,6 +82,7 @@ describe('VideoService', () => {
   });
 
   afterEach(async () => {
+    await prisma.analyzingResult.deleteMany();
     await prisma.video.deleteMany();
     await prisma.user.deleteMany();
   });
@@ -279,5 +281,32 @@ describe('VideoService', () => {
     foundVideo = await service.findOne(video.id);
     expect(foundVideo).toBeDefined();
     expect(foundVideo.url).toBeDefined();
+  });
+
+  it('Should be able to update analyzing result', async () => {
+    const video: CreateVideoDto = {
+      title: 'Test Video',
+      fileName: 'test-video.mp4',
+      description: '',
+    };
+    const createdVideo = await service.create(video, userId);
+    await service.onVideoUploaded(createdVideo.id);
+    await service.publish(createdVideo.id, {
+      SalesInfo: undefined,
+      description: '',
+      title: '',
+    });
+    const analyzingResult = await service.submitAnalyzingResult(
+      createdVideo.id,
+      {
+        quality: VideoQuality.Quality360p,
+        length: 20,
+        frameRate: '40',
+      },
+    );
+
+    const newVideo = await service.findOne(createdVideo.id);
+    expect(newVideo.thumbnail).toBeDefined();
+    expect(analyzingResult.quality).toBe(VideoQuality.Quality360p);
   });
 });

@@ -70,10 +70,23 @@ export class VideoService {
       where: filter,
     });
 
-    return Promise.all([videos, total]).then(([videos, total]) => ({
-      items: videos,
-      metadata: getPaginationMetaData(page, per, total),
-    }));
+    const [videosResult, totalResult] = await Promise.all([videos, total]);
+    const preSignedUrls = await Promise.all(
+      videosResult.map(async (video) => {
+        if (!video.thumbnail) {
+          return undefined;
+        }
+        return this.storage.generatePreSignedUrlForThumbnail(video);
+      }),
+    );
+
+    return {
+      items: videosResult.map((video, index) => ({
+        ...video,
+        thumbnail: preSignedUrls[index]?.previewUrl,
+      })),
+      metadata: getPaginationMetaData(page, per, totalResult),
+    };
   }
 
   async findOne(id: string) {
@@ -264,9 +277,34 @@ export class VideoService {
     id: string,
     result: CreateAnalyzingResult,
   ): Promise<AnalyzingResult> {
-    return await this.prisma.analyzingResult.create({
-      data: {
-        ...result,
+    const video = await this.prisma.video.findUnique({
+      where: {
+        id,
+      },
+    });
+
+    if (video.status !== VideoStatus.ANALYZING) {
+      throw new BadRequestException('Video is not ready for analyzing');
+    }
+
+    const analyzingResult = await this.prisma.analyzingResult.upsert({
+      where: {
+        videoId: id,
+      },
+      update: {
+        frameRate: result.frameRate,
+        length: result.length,
+        quality: result.quality,
+        Video: {
+          connect: {
+            id,
+          },
+        },
+      },
+      create: {
+        frameRate: result.frameRate,
+        length: result.length,
+        quality: result.quality,
         Video: {
           connect: {
             id,
@@ -274,6 +312,22 @@ export class VideoService {
         },
       },
     });
+
+    const thumbnail = this.storage.getUploadThumbnailKey(video);
+    // check if thumbnail exists
+    const exists = await this.storage.checkIfThumbnailExists(video);
+
+    // update video's status and thumbnail
+    await this.prisma.video.update({
+      where: {
+        id,
+      },
+      data: {
+        status: VideoStatus.TRANSCODED,
+        thumbnail: exists ? thumbnail : undefined,
+      },
+    });
+    return analyzingResult;
   }
 
   /**

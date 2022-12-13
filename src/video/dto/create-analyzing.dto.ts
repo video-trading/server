@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { VideoQuality } from '../../common/video';
-import { IsEnum } from 'class-validator';
+import { IsEnum, IsNumber, IsString } from 'class-validator';
 
 export class CreateAnalyzingResult {
   @ApiProperty({
@@ -9,4 +9,16 @@ export class CreateAnalyzingResult {
   })
   @IsEnum(VideoQuality)
   quality: VideoQuality;
+
+  @ApiProperty({
+    description: 'Analyzed video duration',
+  })
+  @IsNumber()
+  length: number;
+
+  @ApiProperty({
+    description: 'Frames per second',
+  })
+  @IsString()
+  frameRate: string;
 }

@@ -1,20 +1,17 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
   Get,
-  HttpException,
   Param,
   Patch,
   Post,
-  UseGuards,
-  Request,
-  BadRequestException,
   Query,
-  ParseIntPipe,
-  UnauthorizedException,
+  Request,
+  UseGuards,
 } from '@nestjs/common';
-import { Prisma, Video, VideoStatus } from '@prisma/client';
+import { AnalyzingResult, Video } from '@prisma/client';
 import { Pagination, PaginationSchema } from '../common/pagination';
 import { TranscodingService } from '../transcoding/transcoding.service';
 import { SignedUrl, StorageService } from '../storage/storage.service';
@@ -40,6 +37,8 @@ import { GetVideoDto } from './dto/get-video.dto';
 import { UpdateVideoDto } from './dto/update-video.dto';
 import { RequestWithUser } from '../common/types';
 import { PublishVideoDto } from './dto/publish-video.dto';
+import { CreateAnalyzingJobDto } from './dto/create-analyzing-job.dto';
+import { MessageQueue } from '../common/messageQueue';
 
 @Controller('video')
 @ApiTags('video')
@@ -101,12 +100,19 @@ export class VideoController {
     const video = await this.videoService.findOne(id);
     await this.videoService.permissionCheck(video, req.user.userId);
     await this.videoService.publish(id, data);
-    const success = this.amqpChannel.publish(
-      'video',
-      'analyzing',
-      Buffer.from(JSON.stringify(video)),
-    );
+    const analyzingJob: CreateAnalyzingJobDto = {
+      videoId: video.id,
+      video: await this.storageService.generatePreSignedUrlForVideo(video),
+      thumbnail: await this.storageService.generatePreSignedUrlForThumbnail(
+        video,
+      ),
+    };
 
+    const success = this.amqpChannel.publish(
+      MessageQueue.exchange,
+      `${MessageQueue.analyzingRoutingKey}.${video.id}`,
+      Buffer.from(JSON.stringify(analyzingJob)),
+    );
     return { success: Boolean(success) };
   }
 

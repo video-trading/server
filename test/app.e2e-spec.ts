@@ -188,6 +188,8 @@ describe('AppController (e2e)', () => {
       .set('Authorization', `Bearer ${accessKey}`)
       .send({
         quality: '1080p',
+        length: 20,
+        frameRate: '40',
       })
       .expect(201)
       .expect((response) => {
