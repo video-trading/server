@@ -148,9 +148,6 @@ model Transcoding {
   targetQuality String
   videoId       String
   status        TranscodingStatus @default(PENDING)
-  progress      Int
-  url           String?
-
   // unique together with videoId and targetQuality
   @@unique([videoId, targetQuality])
 }

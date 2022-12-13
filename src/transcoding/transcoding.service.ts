@@ -4,6 +4,8 @@ import { Operation, StorageService } from '../storage/storage.service';
 import { VideoQuality } from '../common/video';
 import { PrismaService } from '../prisma.service';
 import { UpdateTranscodingDto } from './dto/update-transcoding.dto';
+import { CreateTranscodingDto } from '../video/dto/create-transcoding.dto';
+import { GetTranscodingDto } from '../video/dto/get-transcoding.dto';
 
 @Injectable()
 export class TranscodingService {
@@ -92,7 +94,9 @@ export class TranscodingService {
     });
   }
 
-  async createTranscodingsWithVideo(analyzingResult: AnalyzingResult) {
+  async createTranscodingsWithVideo(
+    analyzingResult: AnalyzingResult,
+  ): Promise<CreateTranscodingDto[]> {
     // get video
     const video = await this.prismService.video.findUnique({
       where: {
@@ -106,19 +110,28 @@ export class TranscodingService {
         this.storageService.generatePreSignedUrlForTranscoding(video, quality),
       ),
     );
+    const videoPreSignedUrl =
+      await this.storageService.generatePreSignedUrlForVideo(video);
+
     // create transcoding objects
-    const videoQualities: Prisma.TranscodingUncheckedCreateInput[] =
-      transcodings.map((quality, index) => ({
+    const videoQualities: CreateTranscodingDto[] = transcodings.map(
+      (quality, index) => ({
         videoId: analyzingResult.videoId,
-        targetQuality: quality as any,
+        targetQuality: quality,
         status: TranscodingStatus.PENDING,
-        progress: 0,
-        url: presignedUrls[index],
-      }));
+        transcodingUrl: presignedUrls[index],
+        videoUrl: videoPreSignedUrl,
+      }),
+    );
 
     await this.prismService.transcoding.createMany({
-      data: videoQualities as any,
+      data: videoQualities.map((videoQuality) => ({
+        videoId: videoQuality.videoId,
+        targetQuality: videoQuality.targetQuality,
+        status: videoQuality.status,
+      })),
     });
+
     return videoQualities;
   }
 

@@ -189,15 +189,33 @@ export class StorageService {
     video: Video,
     quality: VideoQuality,
     operation: Operation = Operation.PUT,
-  ) {
+  ): Promise<SignedUrl> {
+    const key = this.getTranscodingVideoKey(video, quality);
+
     const params = {
       Bucket: process.env.SERVER_AWS_BUCKET_NAME,
-      Key: this.getTranscodingVideoKey(video, quality),
+      Key: key,
     };
 
-    return getSignedUrl(this.s3, this.getCommand(operation, params), {
-      expiresIn: config.preSignedUrlExpiration,
-    });
+    const url = await getSignedUrl(
+      this.s3,
+      this.getCommand(operation, params),
+      {
+        expiresIn: config.preSignedUrlExpiration,
+      },
+    );
+
+    const previewUrl = await getSignedUrl(
+      this.s3,
+      this.getCommand(Operation.GET, params),
+      { expiresIn: config.preSignedUrlExpiration },
+    );
+
+    return {
+      url,
+      key,
+      previewUrl,
+    };
   }
 
   /**
