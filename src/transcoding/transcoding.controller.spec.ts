@@ -5,7 +5,7 @@ import { TranscodingController } from './transcoding.controller';
 import { TranscodingService } from './transcoding.service';
 import { MongoMemoryReplSet } from 'mongodb-memory-server';
 import { VideoQuality } from '../common/video';
-import { Prisma, TranscodingStatus } from '@prisma/client';
+import { Prisma, TranscodingStatus, VideoStatus } from '@prisma/client';
 import { VideoService } from '../video/video.service';
 import { HttpException } from '@nestjs/common';
 import { CreateVideoDto } from '../video/dto/create-video.dto';
@@ -26,6 +26,7 @@ describe('TranscodingController', () => {
   let controller: TranscodingController;
   let mongod: MongoMemoryReplSet;
   let userId: string;
+  let prisma: PrismaService;
 
   beforeAll(async () => {
     mongod = await MongoMemoryReplSet.create({
@@ -50,7 +51,7 @@ describe('TranscodingController', () => {
     }).compile();
 
     controller = module.get<TranscodingController>(TranscodingController);
-    const prisma = module.get<PrismaService>(PrismaService);
+    prisma = module.get<PrismaService>(PrismaService);
 
     const user = await prisma.user.create({
       data: {
@@ -99,12 +100,17 @@ describe('TranscodingController', () => {
 
     const transcoding: Prisma.TranscodingUncheckedCreateInput = {
       status: TranscodingStatus.COMPLETED,
-      progress: 0,
       videoId: createdVideo.id,
       targetQuality: VideoQuality.Quality144p,
     };
 
     await transcodingService.create(transcoding);
+    await prisma.video.update({
+      where: { id: createdVideo.id },
+      data: {
+        status: VideoStatus.TRANSCODING,
+      },
+    });
 
     const result = await controller.update(createdVideo.id, {
       quality: VideoQuality.Quality144p,

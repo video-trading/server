@@ -1,5 +1,10 @@
-import { HttpException, Injectable } from '@nestjs/common';
-import { AnalyzingResult, Prisma, TranscodingStatus } from '@prisma/client';
+import { BadRequestException, HttpException, Injectable } from '@nestjs/common';
+import {
+  AnalyzingResult,
+  Prisma,
+  TranscodingStatus,
+  VideoStatus,
+} from '@prisma/client';
 import { Operation, StorageService } from '../storage/storage.service';
 import { VideoQuality } from '../common/video';
 import { PrismaService } from '../prisma.service';
@@ -73,9 +78,13 @@ export class TranscodingService {
           400,
         );
       }
+
+      if (video.status !== VideoStatus.TRANSCODING) {
+        throw new BadRequestException('Video is not transcoding state');
+      }
     }
 
-    return this.prismService.transcoding.update({
+    const updateResult = await this.prismService.transcoding.update({
       where: {
         videoId_targetQuality: {
           videoId: videoId,
@@ -86,6 +95,41 @@ export class TranscodingService {
         status: status.status,
       },
     });
+
+    // check number of completed transcoding
+    const totalCompletedTranscodingsPromise =
+      this.prismService.transcoding.count({
+        where: {
+          videoId: videoId,
+          status: TranscodingStatus.COMPLETED,
+        },
+      });
+
+    // check total number of transcoding
+    const totalTranscodingsPromise = this.prismService.transcoding.count({
+      where: {
+        videoId: videoId,
+      },
+    });
+
+    const [totalCompletedTranscodings, totalTranscodings] = await Promise.all([
+      totalCompletedTranscodingsPromise,
+      totalTranscodingsPromise,
+    ]);
+
+    // if all transcoding are completed, update video status
+    if (totalCompletedTranscodings === totalTranscodings) {
+      await this.prismService.video.update({
+        where: {
+          id: videoId,
+        },
+        data: {
+          status: VideoStatus.READY,
+        },
+      });
+    }
+
+    return updateResult;
   }
 
   remove(id: string) {

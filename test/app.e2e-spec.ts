@@ -207,10 +207,7 @@ describe('AppController (e2e)', () => {
     // update transcoding status
     await request(app.getHttpServer())
       .patch(`/transcoding/${videoId}`)
-      .send({
-        status: 'COMPLETED',
-        quality: '1080p',
-      })
+      .send({ quality: '360p', status: 'COMPLETED' })
       .set('Authorization', `Bearer ${accessKey}`)
       .expect(200)
       .expect((response) => {

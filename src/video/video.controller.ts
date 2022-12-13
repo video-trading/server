@@ -225,15 +225,13 @@ export class VideoController {
         analyzingResult,
       );
 
-    console.log(transodings[2]);
-
-    // transodings.forEach((transcoding) =>
-    //   this.amqpChannel.publish(
-    //     MessageQueue.transcodingExchange,
-    //     `${MessageQueue.transcodingRoutingKey}.${transcoding.videoId}.${transcoding.targetQuality}`,
-    //     Buffer.from(JSON.stringify(transcoding)),
-    //   ),
-    // );
+    for (const transcoding of transodings) {
+      this.amqpChannel.publish(
+        MessageQueue.transcodingExchange,
+        `${MessageQueue.transcodingRoutingKey}.${id}`,
+        Buffer.from(JSON.stringify(transcoding)),
+      );
+    }
     await this.videoService.startTranscoding(id);
     return transodings;
   }
