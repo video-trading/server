@@ -36,4 +36,9 @@ export class GetVideoDto implements Video {
   @ApiProperty()
   version: number;
   categoryId: string;
+
+  @ApiProperty({
+    description: 'Video progress in percentage (0-100)',
+  })
+  progress: number;
 }

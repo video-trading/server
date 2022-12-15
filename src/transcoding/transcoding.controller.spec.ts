@@ -9,6 +9,8 @@ import { Prisma, TranscodingStatus, VideoStatus } from '@prisma/client';
 import { VideoService } from '../video/video.service';
 import { HttpException } from '@nestjs/common';
 import { CreateVideoDto } from '../video/dto/create-video.dto';
+import { AMQPModule } from '@enriqcg/nestjs-amqp';
+import { ConfigModule } from '@nestjs/config';
 
 jest.mock('@aws-sdk/client-s3', () => {
   return {
@@ -41,6 +43,7 @@ describe('TranscodingController', () => {
   beforeEach(async () => {
     process.env.DATABASE_URL = mongod.getUri('video');
     const module: TestingModule = await Test.createTestingModule({
+      imports: [ConfigModule, AMQPModule.forRoot({})],
       controllers: [TranscodingController],
       providers: [
         TranscodingService,
