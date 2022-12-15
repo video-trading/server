@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -11,8 +10,12 @@ import {
   Request,
   UseGuards,
 } from '@nestjs/common';
-import { AnalyzingResult, Video } from '@prisma/client';
-import { Pagination, PaginationSchema } from '../common/pagination';
+import { Video, VideoStatus } from '@prisma/client';
+import {
+  getPageAndLimit,
+  Pagination,
+  PaginationSchema,
+} from '../common/pagination';
 import { TranscodingService } from '../transcoding/transcoding.service';
 import { SignedUrl, StorageService } from '../storage/storage.service';
 
@@ -32,7 +35,6 @@ import {
 import { CreateVideoDto } from './dto/create-video.dto';
 import { CreateAnalyzingResult } from './dto/create-analyzing.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth-guard';
-import { config } from '../common/utils/config/config';
 import { GetVideoDto } from './dto/get-video.dto';
 import { UpdateVideoDto } from './dto/update-video.dto';
 import { RequestWithUser } from '../common/types';
@@ -144,18 +146,7 @@ export class VideoController {
     @Query('per') limit: string | undefined,
     @Query('category') category: string | undefined,
   ): Promise<Pagination<Video>> {
-    // parse page and per to number
-    const pageInt = page ? parseInt(page) : config.defaultStartingPage;
-    const limitInt = limit ? parseInt(limit) : config.numberOfItemsPerPage;
-
-    // if page or per is not a number, throw an error
-    if (isNaN(pageInt) || isNaN(limitInt)) {
-      throw new BadRequestException('page and per must be a number');
-    }
-    // if page or per is less than 1, throw an error
-    if (pageInt < 1 || limitInt < 1) {
-      throw new BadRequestException('page and per must be greater than 0');
-    }
+    const { page: pageInt, limit: limitInt } = getPageAndLimit(page, limit);
 
     if (category?.length === 0) {
       category = undefined;
@@ -201,6 +192,7 @@ export class VideoController {
 
   @UseGuards(JwtAuthGuard)
   @Delete(':id')
+  @ApiBearerAuth()
   remove(@Param('id') id: string, @Request() req) {
     return this.videoService.remove(id, req.user.userId);
   }
@@ -234,5 +226,58 @@ export class VideoController {
     }
     await this.videoService.startTranscoding(id);
     return transodings;
+  }
+
+  @Get('by/:userId')
+  @ApiExtraModels(GetVideoDto)
+  @ApiOkResponse({
+    description: 'Get a list of videos',
+    schema: {
+      allOf: [
+        {
+          type: 'object',
+          properties: {
+            items: {
+              type: 'array',
+              items: {
+                $ref: getSchemaPath(GetVideoDto),
+              },
+            },
+          },
+        },
+        {
+          ...PaginationSchema,
+        },
+      ],
+    },
+  })
+  async findUserVideos(
+    @Param('userId') userId: string,
+    @Query('page') page: string | undefined,
+    @Query('per') limit: string | undefined,
+  ) {
+    const { page: pageInt, limit: limitInt } = getPageAndLimit(page, limit);
+    return await this.videoService.findVideosByUser(userId, pageInt, limitInt);
+  }
+
+  @Get('my/videos')
+  @ApiExtraModels(GetVideoDto)
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @ApiOkResponse({
+    description: 'Get a list of videos belong to current user',
+  })
+  async findMyVideos(
+    @Request() req: RequestWithUser,
+    @Query('page') page: string | undefined,
+    @Query('per') limit: string | undefined,
+  ) {
+    const { page: pageInt, limit: limitInt } = getPageAndLimit(page, limit);
+
+    return await this.videoService.findMyVideos(
+      req.user.userId,
+      pageInt,
+      limitInt,
+    );
   }
 }

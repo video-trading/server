@@ -10,7 +10,6 @@ import { VideoQuality } from '../common/video';
 import { PrismaService } from '../prisma.service';
 import { UpdateTranscodingDto } from './dto/update-transcoding.dto';
 import { CreateTranscodingDto } from '../video/dto/create-transcoding.dto';
-import { GetTranscodingDto } from '../video/dto/get-transcoding.dto';
 
 @Injectable()
 export class TranscodingService {
@@ -232,5 +231,39 @@ export class TranscodingService {
       ];
     }
     return [];
+  }
+
+  async findNotCompletedTranscodings(
+    videoId: string,
+    userId: string,
+  ): Promise<CreateTranscodingDto[]> {
+    const video = await this.prismService.video.findUnique({
+      where: {
+        id: videoId,
+      },
+    });
+    const transcodings = await this.prismService.transcoding.findMany({
+      where: {
+        videoId: videoId,
+        status: {
+          not: TranscodingStatus.COMPLETED,
+        },
+      },
+    });
+
+    const jobs = await Promise.all(
+      transcodings.map(async (t) => ({
+        ...t,
+        videoUrl: await this.storageService.generatePreSignedUrlForVideo(video),
+        transcodingUrl:
+          await this.storageService.generatePreSignedUrlForTranscoding(
+            video,
+            t.targetQuality as any,
+          ),
+        targetQuality: t.targetQuality as any,
+      })),
+    );
+
+    return jobs;
   }
 }

@@ -8,6 +8,7 @@ import { BlockchainService } from '../blockchain/blockchain.service';
 import { StorageService } from '../storage/storage.service';
 import { VideoStatus } from '@prisma/client';
 import { VideoQuality } from '../common/video';
+import { ConfigModule } from '@nestjs/config';
 
 jest.mock('@aws-sdk/client-s3', () => {
   return {
@@ -37,6 +38,7 @@ describe('VideoService', () => {
   let mongod: MongoMemoryReplSet;
   let prisma: PrismaService;
   let userId: string;
+  let userId2: string;
 
   beforeAll(async () => {
     mongod = await MongoMemoryReplSet.create({
@@ -51,7 +53,7 @@ describe('VideoService', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      imports: [AMQPModule.forRoot({})],
+      imports: [ConfigModule, AMQPModule.forRoot({})],
       providers: [
         VideoService,
         PrismaService,
@@ -78,7 +80,23 @@ describe('VideoService', () => {
       },
     });
 
+    const user2 = await prisma.user.create({
+      data: {
+        email: 'abc@abc.com',
+        password: 'password',
+        name: 'abc2',
+        username: 'abc',
+        Wallet: {
+          create: {
+            privateKey: 'privateKey',
+            address: 'address',
+          },
+        },
+      },
+    });
+
     userId = user.id;
+    userId2 = user2.id;
   });
 
   afterEach(async () => {
@@ -95,7 +113,7 @@ describe('VideoService', () => {
     };
     await service.create(video, userId);
     const videos = await service.findAll(1);
-    expect(videos.items).toHaveLength(1);
+    expect(videos.items).toHaveLength(0);
   });
 
   it('Should be able to update video without sales info', async () => {
@@ -106,11 +124,11 @@ describe('VideoService', () => {
     };
     await service.create(video, userId);
 
-    const videos = await service.findAll(1);
-    expect(videos.items).toHaveLength(1);
+    const videos = await prisma.video.findMany();
+    expect(videos).toHaveLength(1);
     expect(await service.count()).toBe(1);
 
-    const updatedVideo = await service.update(videos.items[0].id, userId, {
+    const updatedVideo = await service.update(videos[0].id, userId, {
       title: 'Updated Video',
     });
     expect(updatedVideo.title).toBe('Updated Video');
@@ -124,11 +142,11 @@ describe('VideoService', () => {
     };
     await service.create(video, userId);
 
-    const videos = await service.findAll(1);
-    expect(videos.items).toHaveLength(1);
+    const videos = await prisma.video.findMany();
+    expect(videos).toHaveLength(1);
     expect(await service.count()).toBe(1);
 
-    const updatedVideo = await service.update(videos.items[0].id, userId, {
+    const updatedVideo = await service.update(videos[0].id, userId, {
       title: 'Updated Video',
       SalesInfo: {
         price: 20,
@@ -147,11 +165,11 @@ describe('VideoService', () => {
     };
     await service.create(video, userId);
 
-    const videos = await service.findAll(1);
-    expect(videos.items).toHaveLength(1);
+    const videos = await prisma.video.findMany();
+    expect(videos).toHaveLength(1);
     expect(await service.count()).toBe(1);
 
-    const updatedVideo = await service.update(videos.items[0].id, userId, {
+    const updatedVideo = await service.update(videos[0].id, userId, {
       title: 'Updated Video',
       SalesInfo: {
         price: 20,
@@ -213,11 +231,11 @@ describe('VideoService', () => {
     };
     await service.create(video, userId);
 
-    const videos = await service.findAll(1);
-    expect(videos.items).toHaveLength(1);
+    const videos = await prisma.video.findMany();
+    expect(videos).toHaveLength(1);
     expect(await service.count()).toBe(1);
 
-    await service.remove(videos.items[0].id, userId);
+    await service.remove(videos[0].id, userId);
     expect(await service.count()).toBe(0);
   });
 
@@ -229,11 +247,11 @@ describe('VideoService', () => {
     };
     await service.create(video, userId);
 
-    const videos = await service.findAll(1);
-    expect(videos.items).toHaveLength(1);
+    const videos = await prisma.video.findMany();
+    expect(videos).toHaveLength(1);
     expect(await service.count()).toBe(1);
     await expect(() =>
-      service.remove(videos.items[0].id, 'randomId'),
+      service.remove(videos[0].id, 'randomId'),
     ).rejects.toThrow();
   });
 
@@ -308,5 +326,83 @@ describe('VideoService', () => {
     const newVideo = await service.findOne(createdVideo.id);
     expect(newVideo.thumbnail).toBeDefined();
     expect(analyzingResult.quality).toBe(VideoQuality.Quality360p);
+  });
+
+  it('Should be able to find videos by user id', async () => {
+    const video: CreateVideoDto = {
+      title: 'Test Video',
+      fileName: 'test-video.mp4',
+      description: '',
+    };
+    const createdVideo = await service.create(video, userId);
+    await service.create(video, userId);
+    await service.create(video, userId);
+    await service.create(video, userId2);
+    await service.create(video, userId2);
+
+    await prisma.video.update({
+      where: { id: createdVideo.id },
+      data: { status: VideoStatus.READY },
+    });
+
+    const videos = await service.findVideosByUser(userId, 1, 10);
+    expect(videos.items).toHaveLength(1);
+
+    const videos2 = await service.findVideosByUser(userId2, 1, 10);
+    expect(videos2.items).toHaveLength(0);
+  });
+
+  it('Should be able to find my videos', async () => {
+    const video: CreateVideoDto = {
+      title: 'Test Video',
+      fileName: 'test-video.mp4',
+      description: '',
+    };
+    const createdVideo = await service.create(video, userId);
+    const createdVideo2 = await service.create(video, userId);
+    const createdVideo3 = await service.create(video, userId);
+    const createdVideo4 = await service.create(video, userId2);
+    const createdVideo5 = await service.create(video, userId2);
+
+    await prisma.video.update({
+      where: { id: createdVideo.id },
+      data: { status: VideoStatus.READY },
+    });
+
+    await prisma.video.update({
+      where: { id: createdVideo2.id },
+      data: { status: VideoStatus.READY },
+    });
+
+    await prisma.video.update({
+      where: { id: createdVideo3.id },
+      data: { status: VideoStatus.READY },
+    });
+
+    await prisma.video.update({
+      where: { id: createdVideo4.id },
+      data: { status: VideoStatus.READY },
+    });
+
+    await prisma.video.update({
+      where: { id: createdVideo5.id },
+      data: { status: VideoStatus.READY },
+    });
+
+    const videos = await service.findMyVideos(userId, 1, 2);
+    expect(videos.items).toHaveLength(1);
+    expect(videos.items[0].videos).toHaveLength(3);
+    expect(videos.metadata.total).toBe(1);
+  });
+
+  it('Should return a proper video progress', () => {
+    const progress = service.getProgressByStatus(VideoStatus.UPLOADED);
+    expect(progress).toBe((2 / 7) * 100);
+
+    const progress2 = service.getProgressByStatus(VideoStatus.TRANSCODING);
+    expect(progress2).toBe((5 / 7) * 100);
+
+    const progress3 = service.getProgressByStatus(VideoStatus.READY);
+    expect(progress3).toBe(100);
   });
 });

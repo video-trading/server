@@ -158,6 +158,8 @@ export class StorageService {
       Key: this.getUploadThumbnailKey(video),
     };
 
+    console.log(params);
+
     const signedUrl = await getSignedUrl(
       this.s3,
       this.getCommand(operation, params),
@@ -338,5 +340,28 @@ export class StorageService {
       Key: key,
     };
     return this.s3.send(new DeleteObjectCommand(params));
+  }
+
+  /**
+   * Generate presigned url for given key
+   */
+  async generatePreSignedUrl(
+    key: string,
+    operation: Operation = Operation.GET,
+  ) {
+    const params = {
+      Bucket: process.env.SERVER_AWS_BUCKET_NAME,
+      Key: key,
+    };
+
+    const url = await getSignedUrl(
+      this.s3,
+      this.getCommand(operation, params),
+      {
+        expiresIn: config.preSignedUrlExpiration,
+      },
+    );
+
+    return url;
   }
 }

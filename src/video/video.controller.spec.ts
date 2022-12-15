@@ -99,12 +99,12 @@ describe('VideoController', () => {
 
     const result = await controller.create(video, { user: { userId } });
     expect(result.preSignedURL).toBeDefined();
-    const videos = await controller.findAll('1', '10', undefined);
-    expect(videos.items).toHaveLength(1);
-    expect(videos.items.length).toBe(1);
+    const videos = await prisma.video.findMany();
+    expect(videos).toHaveLength(1);
+    expect(videos.length).toBe(1);
 
     const updatedVideo = await controller.update(
-      videos.items[0].id,
+      videos[0].id,
       {
         title: 'Updated Video',
       },
@@ -328,5 +328,34 @@ describe('VideoController', () => {
       where: { id: result.video.id },
     });
     expect(updatedVideo.status).toBe(VideoStatus.ANALYZING);
+  });
+
+  it('Should be able to my videos', async () => {
+    const video: CreateVideoDto = {
+      description: '',
+      title: 'Test Video',
+      fileName: 'test-video.mp4',
+    };
+
+    const result = await controller.create(video, { user: { userId } });
+    await prisma.video.update({
+      where: { id: result.video.id },
+      data: {
+        status: VideoStatus.READY,
+      },
+    });
+
+    const myVideos = await controller.findMyVideos(
+      { user: { userId } },
+      undefined,
+      undefined,
+    );
+    const videos = await controller.findUserVideos(
+      userId,
+      undefined,
+      undefined,
+    );
+    expect(myVideos.items).toHaveLength(1);
+    expect(videos.items).toHaveLength(1);
   });
 });

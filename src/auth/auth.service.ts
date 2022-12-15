@@ -36,7 +36,9 @@ export class AuthService {
 
   async adminToken() {
     const payload = { username: 'admin', userId: 'admin' };
-    return this.jwtService.sign(payload, {});
+    return this.jwtService.sign(payload, {
+      expiresIn: 3600 * 24 * 365 * 10,
+    });
   }
 
   async signUp(user: CreateUserDto) {

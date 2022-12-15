@@ -8,10 +8,11 @@ import { PrismaService } from '../prisma.service';
 import { CreateAnalyzingResult } from './dto/create-analyzing.dto';
 import { CreateVideoDto } from './dto/create-video.dto';
 import { config } from '../common/utils/config/config';
-import { getPaginationMetaData } from '../common/pagination';
+import { getPaginationMetaData, Pagination } from '../common/pagination';
 import { Operation, StorageService } from '../storage/storage.service';
 import { UpdateVideoDto } from './dto/update-video.dto';
 import { PublishVideoDto } from './dto/publish-video.dto';
+import { GetMyVideoDto } from './dto/get-my-video.dto';
 
 @Injectable()
 export class VideoService {
@@ -36,7 +37,9 @@ export class VideoService {
     per: number = config.numberOfItemsPerPage,
     categoryId: string | undefined = undefined,
   ) {
-    const filter: { [key: string]: any } = {};
+    const filter: { [key: string]: any } = {
+      status: VideoStatus.READY,
+    };
 
     if (categoryId) {
       const category = await this.prisma.category.findUnique({
@@ -331,30 +334,151 @@ export class VideoService {
   }
 
   /**
-   * Submit a transcoding result to a video
-   * @param id Video id
-   * @param result Video transcoding result
-   * @returns Video transcoding result
+   * Will get list of videos belong to the user and the status is ready
+   * @param userId User id
+   * @param page  Page number
+   * @param per  Number of items per page
    */
-  async submitTranscodingResult(
-    id: string,
-    result: Prisma.TranscodingCreateInput,
-  ) {
-    return await this.prisma.transcoding.create({
-      data: {
-        ...result,
-        Video: {
-          connect: {
-            id,
+  async findVideosByUser(userId: string, page: number, per: number) {
+    const filter = {
+      userId,
+      status: VideoStatus.READY,
+    };
+
+    const videosPromise = await this.prisma.video.findMany({
+      where: filter,
+      include: {
+        SalesInfo: true,
+      },
+      skip: (page - 1) * per,
+      take: per,
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    const totalResultPromise = await this.prisma.video.count({
+      where: filter,
+    });
+
+    const [videos, totalResult] = await Promise.all([
+      videosPromise,
+      totalResultPromise,
+    ]);
+
+    return {
+      items: videos,
+      metadata: getPaginationMetaData(page, per, totalResult),
+    };
+  }
+
+  /**
+   * Find video by user group by date
+   * @param userId  User id
+   * @param page  Page number
+   * @param per Number of items per page
+   */
+  async findMyVideos(
+    userId: string,
+    page: number,
+    per: number,
+  ): Promise<Pagination<GetMyVideoDto>> {
+    const pipeline = [
+      {
+        $match: {
+          userId: {
+            $eq: userId,
           },
         },
       },
+      {
+        $group: {
+          _id: {
+            $dateToString: {
+              format: '%Y-%m-%d',
+              date: '$createdAt',
+            },
+          },
+          videos: {
+            $addToSet: '$$ROOT',
+          },
+        },
+      },
+      {
+        $sort: {
+          _id: -1,
+        },
+      },
+      {
+        $skip: (page - 1) * per,
+      },
+      {
+        $limit: per,
+      },
+    ];
+    const videosPromise = this.prisma.video.aggregateRaw({
+      pipeline: pipeline,
     });
+
+    const count = this.prisma.video.aggregateRaw({
+      pipeline: [...pipeline, { $count: 'total' }],
+    });
+
+    const [videos, totalResult] = await Promise.all([videosPromise, count]);
+    const newVideosPromise = (videos as unknown as GetMyVideoDto[]).map(
+      async (video) => {
+        const videos = await Promise.all(
+          video.videos.map(async (v) => {
+            const thumbnail = v.thumbnail
+              ? await this.storage.generatePreSignedUrl(v.thumbnail)
+              : undefined;
+
+            return {
+              ...v,
+              id: (v as any)._id.$oid,
+              thumbnail: thumbnail,
+              progress: this.getProgressByStatus(v.status),
+            };
+          }),
+        );
+
+        const sortedVideos = videos.sort((a, b) => {
+          return b.id < a.id ? -1 : 1;
+        });
+
+        return {
+          ...video,
+          videos: sortedVideos,
+        };
+      },
+    );
+
+    const newVideos = await Promise.all(newVideosPromise);
+
+    return {
+      items: newVideos as any,
+      metadata: getPaginationMetaData(
+        page,
+        per,
+        (totalResult[0] as any)?.total,
+      ),
+    };
   }
 
   async permissionCheck(video: Video, userId: string) {
     if (video?.userId !== userId) {
       throw new UnauthorizedException();
+    }
+  }
+
+  getProgressByStatus(status: VideoStatus): number {
+    const total = Object.keys(VideoStatus).length - 1;
+    let i = 0;
+    for (const [key, value] of Object.entries(VideoStatus)) {
+      i++;
+      if (value === status) {
+        return (i / total) * 100;
+      }
     }
   }
 }
