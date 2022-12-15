@@ -4,15 +4,14 @@ import {
   Delete,
   Get,
   Param,
-  ParseIntPipe,
   Patch,
   Post,
   Query,
+  Request,
   UseGuards,
 } from '@nestjs/common';
 import { PlaylistService } from './playlist.service';
 import { JwtAuthGuard } from '../auth/jwt-auth-guard';
-import { Request } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiBody,

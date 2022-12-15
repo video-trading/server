@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
-const prisma = new PrismaClient();
 import Categories from './categories.json';
+
+const prisma = new PrismaClient();
 
 async function addCategories() {
   for (const category of Categories) {

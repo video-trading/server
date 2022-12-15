@@ -93,6 +93,7 @@ describe('TranscodingService', () => {
     const videoService = new VideoService(
       new PrismaService(),
       new StorageService(),
+      service,
     );
     const createdVideo = await videoService.create(video, userId);
 
@@ -131,6 +132,7 @@ describe('TranscodingService', () => {
     const videoService = new VideoService(
       new PrismaService(),
       new StorageService(),
+      service,
     );
     const createdVideo = await videoService.create(video, userId);
 
@@ -152,6 +154,7 @@ describe('TranscodingService', () => {
     const videoService = new VideoService(
       new PrismaService(),
       new StorageService(),
+      service,
     );
     const createdVideo = await videoService.create(video, userId);
     await prisma.video.update({
@@ -198,6 +201,7 @@ describe('TranscodingService', () => {
     const videoService = new VideoService(
       new PrismaService(),
       new StorageService(),
+      service,
     );
     const createdVideo = await videoService.create(video, userId);
     await service.createTranscodingsWithVideo({

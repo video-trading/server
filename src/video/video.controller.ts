@@ -10,7 +10,7 @@ import {
   Request,
   UseGuards,
 } from '@nestjs/common';
-import { Video, VideoStatus } from '@prisma/client';
+import { Video } from '@prisma/client';
 import {
   getPageAndLimit,
   Pagination,
@@ -41,6 +41,7 @@ import { RequestWithUser } from '../common/types';
 import { PublishVideoDto } from './dto/publish-video.dto';
 import { CreateAnalyzingJobDto } from './dto/create-analyzing-job.dto';
 import { MessageQueue } from '../common/messageQueue';
+import { GetMyVideoDetailDto } from './dto/get-my-video-detail.dto';
 
 @Controller('video')
 @ApiTags('video')
@@ -279,5 +280,19 @@ export class VideoController {
       pageInt,
       limitInt,
     );
+  }
+
+  @Get('my/videos/:id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOkResponse({
+    description: 'Get a video detail by id',
+    type: GetMyVideoDetailDto,
+  })
+  async findMyVideoById(
+    @Param('id') id: string,
+    @Request() req: RequestWithUser,
+  ) {
+    return await this.videoService.findMyVideoDetailById(id, req.user.userId);
   }
 }
