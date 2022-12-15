@@ -109,7 +109,7 @@ export class VideoController {
     };
 
     const success = this.amqpChannel.publish(
-      MessageQueue.exchange,
+      MessageQueue.analyzingExchange,
       `${MessageQueue.analyzingRoutingKey}.${video.id}`,
       Buffer.from(JSON.stringify(analyzingJob)),
     );
@@ -224,11 +224,14 @@ export class VideoController {
       await this.transcodingService.createTranscodingsWithVideo(
         analyzingResult,
       );
-    this.amqpChannel.publish(
-      'video',
-      'transcoding',
-      Buffer.from(JSON.stringify(transodings)),
-    );
+
+    for (const transcoding of transodings) {
+      this.amqpChannel.publish(
+        MessageQueue.transcodingExchange,
+        `${MessageQueue.transcodingRoutingKey}.${id}`,
+        Buffer.from(JSON.stringify(transcoding)),
+      );
+    }
     await this.videoService.startTranscoding(id);
     return transodings;
   }

@@ -12,6 +12,7 @@ import { AuthModule } from './auth/auth.module';
 import { BlockchainService } from './blockchain/blockchain.service';
 import { PlaylistModule } from './playlist/playlist.module';
 import { CategoryModule } from './category/category.module';
+import { MessageQueue } from './common/messageQueue';
 
 @Module({
   imports: [
@@ -20,7 +21,11 @@ import { CategoryModule } from './category/category.module';
       uri: Environments.rabbit_mq_url,
       assertExchanges: [
         {
-          name: 'video',
+          name: MessageQueue.transcodingExchange,
+          type: 'topic',
+        },
+        {
+          name: MessageQueue.analyzingExchange,
           type: 'topic',
         },
       ],

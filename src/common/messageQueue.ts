@@ -1,4 +1,6 @@
 export const MessageQueue = {
-  exchange: 'video',
+  analyzingExchange: 'analyzing',
   analyzingRoutingKey: 'analyzing',
+  transcodingExchange: 'transcoding',
+  transcodingRoutingKey: 'transcoding',
 };
