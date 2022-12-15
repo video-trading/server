@@ -4,9 +4,8 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { PrismaService } from '../prisma.service';
 import * as bcrypt from 'bcrypt';
 import { BlockchainService } from '../blockchain/blockchain.service';
-import { Operation, StorageService } from '../storage/storage.service';
+import { StorageService } from '../storage/storage.service';
 import axios from 'axios';
-import * as fs from 'fs';
 
 @Injectable()
 export class UserService {

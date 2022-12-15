@@ -1,7 +1,7 @@
 import { ConfigModule } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
 import { StorageService } from './storage.service';
-import { TranscodingStatus, VideoStatus } from '@prisma/client';
+import { VideoStatus } from '@prisma/client';
 
 describe('StorageService', () => {
   let service: StorageService;

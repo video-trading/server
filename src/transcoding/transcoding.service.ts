@@ -47,17 +47,19 @@ export class TranscodingService {
       videoPromise,
     ]);
 
-    return transcodings.map((transcoding) => ({
+    const resultPromise = transcodings.map(async (transcoding) => ({
       ...transcoding,
       url:
         transcoding.status === TranscodingStatus.COMPLETED
-          ? this.storageService.generatePreSignedUrlForTranscoding(
+          ? await this.storageService.generatePreSignedUrlForTranscoding(
               video,
               transcoding.targetQuality as any,
               Operation.GET,
             )
           : undefined,
     }));
+
+    return Promise.all(resultPromise);
   }
 
   async update(videoId: string, status: UpdateTranscodingDto) {

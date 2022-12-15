@@ -3,7 +3,7 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
-import { AnalyzingResult, Prisma, Video, VideoStatus } from '@prisma/client';
+import { AnalyzingResult, Video, VideoStatus } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
 import { CreateAnalyzingResult } from './dto/create-analyzing.dto';
 import { CreateVideoDto } from './dto/create-video.dto';
@@ -13,10 +13,16 @@ import { Operation, StorageService } from '../storage/storage.service';
 import { UpdateVideoDto } from './dto/update-video.dto';
 import { PublishVideoDto } from './dto/publish-video.dto';
 import { GetMyVideoDto } from './dto/get-my-video.dto';
+import { TranscodingService } from '../transcoding/transcoding.service';
+import { GetMyVideoDetailDto } from './dto/get-my-video-detail.dto';
 
 @Injectable()
 export class VideoService {
-  constructor(private prisma: PrismaService, private storage: StorageService) {}
+  constructor(
+    private prisma: PrismaService,
+    private storage: StorageService,
+    private readonly transcodingService: TranscodingService,
+  ) {}
 
   create(video: CreateVideoDto, user: string) {
     return this.prisma.video.create({
@@ -462,6 +468,51 @@ export class VideoService {
         per,
         (totalResult[0] as any)?.total,
       ),
+    };
+  }
+
+  async findMyVideoDetailById(
+    id: string,
+    userId: string,
+  ): Promise<GetMyVideoDetailDto> {
+    const video = await this.prisma.video.findUnique({
+      where: {
+        id,
+      },
+      include: {
+        SalesInfo: true,
+        Category: true,
+      },
+    });
+
+    if (video.userId !== userId) {
+      throw new UnauthorizedException(
+        "You don't have permission to access this video",
+      );
+    }
+    if (video.thumbnail) {
+      video.thumbnail = await this.storage.generatePreSignedUrl(
+        video.thumbnail,
+      );
+    }
+    // get transcodings
+    const transcodingsPromise = this.transcodingService.findAll(id);
+    const analyzingResultPromise = this.prisma.analyzingResult.findUnique({
+      where: {
+        videoId: id,
+      },
+    });
+
+    const [transcodings, analyzingResult] = await Promise.all([
+      transcodingsPromise,
+      analyzingResultPromise,
+    ]);
+
+    return {
+      ...video,
+      transcodings: transcodings as any,
+      analyzingResult: analyzingResult as any,
+      progress: this.getProgressByStatus(video.status),
     };
   }
 

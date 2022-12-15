@@ -29,6 +29,7 @@ describe('TranscodingController', () => {
   let mongod: MongoMemoryReplSet;
   let userId: string;
   let prisma: PrismaService;
+  let service: TranscodingService;
 
   beforeAll(async () => {
     mongod = await MongoMemoryReplSet.create({
@@ -54,6 +55,7 @@ describe('TranscodingController', () => {
     }).compile();
 
     controller = module.get<TranscodingController>(TranscodingController);
+    service = module.get<TranscodingService>(TranscodingService);
     prisma = module.get<PrismaService>(PrismaService);
 
     const user = await prisma.user.create({
@@ -94,6 +96,7 @@ describe('TranscodingController', () => {
     const videoService = new VideoService(
       new PrismaService(),
       new StorageService(),
+      service,
     );
     const transcodingService = new TranscodingService(
       new PrismaService(),

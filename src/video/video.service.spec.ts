@@ -9,6 +9,8 @@ import { StorageService } from '../storage/storage.service';
 import { VideoStatus } from '@prisma/client';
 import { VideoQuality } from '../common/video';
 import { ConfigModule } from '@nestjs/config';
+import { TranscodingService } from '../transcoding/transcoding.service';
+import { UnauthorizedException } from '@nestjs/common';
 
 jest.mock('@aws-sdk/client-s3', () => {
   return {
@@ -59,6 +61,7 @@ describe('VideoService', () => {
         PrismaService,
         BlockchainService,
         StorageService,
+        TranscodingService,
       ],
     }).compile();
 
@@ -404,5 +407,25 @@ describe('VideoService', () => {
 
     const progress3 = service.getProgressByStatus(VideoStatus.READY);
     expect(progress3).toBe(100);
+  });
+
+  it('Should be able to get my video by id', async () => {
+    const video: CreateVideoDto = {
+      title: 'Test Video',
+      fileName: 'test-video.mp4',
+      description: '',
+    };
+    const createdVideo = await service.create(video, userId);
+    const foundVideo = await service.findMyVideoDetailById(
+      createdVideo.id,
+      userId,
+    );
+    expect(foundVideo).toBeDefined();
+    expect(foundVideo.transcodings).toHaveLength(0);
+    expect(foundVideo.progress).toBeDefined();
+
+    await expect(() =>
+      service.findMyVideoDetailById(createdVideo.id, 'userId'),
+    ).rejects.toThrow(UnauthorizedException);
   });
 });

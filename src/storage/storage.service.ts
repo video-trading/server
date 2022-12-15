@@ -157,9 +157,6 @@ export class StorageService {
       Bucket: process.env.SERVER_AWS_BUCKET_NAME,
       Key: this.getUploadThumbnailKey(video),
     };
-
-    console.log(params);
-
     const signedUrl = await getSignedUrl(
       this.s3,
       this.getCommand(operation, params),
