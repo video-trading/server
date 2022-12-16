@@ -15,6 +15,7 @@ import { PublishVideoDto } from './dto/publish-video.dto';
 import { GetMyVideoDto } from './dto/get-my-video.dto';
 import { TranscodingService } from '../transcoding/transcoding.service';
 import { GetMyVideoDetailDto } from './dto/get-my-video-detail.dto';
+import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class VideoService {
@@ -139,6 +140,7 @@ export class VideoService {
         update: data.SalesInfo,
         create: {
           ...data.SalesInfo,
+          tokenId: uuidv4(),
           Video: {
             connect: {
               id,
