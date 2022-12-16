@@ -160,6 +160,37 @@ describe('VideoService', () => {
     expect(updatedVideo.SalesInfo.price).toBe(20);
   });
 
+  it('Should be able to create multiple videos with sales info', async () => {
+    const video: CreateVideoDto = {
+      title: 'Test Video',
+      fileName: 'test-video.mp4',
+      description: '',
+    };
+    const video1 = await service.create(video, userId);
+    const video2 = await service.create(video, userId);
+
+    const updatedVideo1 = await service.update(video1.id, userId, {
+      title: 'Updated Video',
+      SalesInfo: {
+        price: 20,
+        tokenId: '20',
+      },
+    });
+
+    const updatedVideo2 = await service.update(video2.id, userId, {
+      title: 'Updated Video',
+      SalesInfo: {
+        price: 20,
+        tokenId: '20',
+      },
+    });
+
+    expect(updatedVideo1.title).toBe('Updated Video');
+    expect(updatedVideo1.SalesInfo.price).toBe(20);
+    expect(updatedVideo2.title).toBe('Updated Video');
+    expect(updatedVideo2.SalesInfo.price).toBe(20);
+  });
+
   it('Should be able to publish video with sales info', async () => {
     const video: CreateVideoDto = {
       title: 'Test Video',
