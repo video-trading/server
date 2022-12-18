@@ -16,6 +16,7 @@ import { GetMyVideoDto } from './dto/get-my-video.dto';
 import { TranscodingService } from '../transcoding/transcoding.service';
 import { GetMyVideoDetailDto } from './dto/get-my-video-detail.dto';
 import { v4 as uuidv4 } from 'uuid';
+import { GetVideoDetailDto, GetVideoDto } from './dto/get-video.dto';
 
 @Injectable()
 export class VideoService {
@@ -99,25 +100,54 @@ export class VideoService {
     };
   }
 
-  async findOne(id: string) {
+  async findOne(id: string): Promise<GetVideoDetailDto> {
     const video = await this.prisma.video.findUnique({
       where: {
         id,
       },
       include: {
         SalesInfo: true,
+        Category: true,
+        User: true,
       },
     });
+    const transcodings = await this.transcodingService.findAll(id);
+
+    const videoUrl =
+      video.status === VideoStatus.READY
+        ? await this.storage.generatePreSignedUrlForVideo(video)
+        : undefined;
+    const thumbnailUrl =
+      video.status === VideoStatus.READY
+        ? await this.storage.generatePreSignedUrlForThumbnail(video)
+        : undefined;
+    const userAvatarUrl = await this.storage.generatePreSignedUrlForAvatar(
+      video.User,
+    );
+
+    const transcodingsWithUrl = await Promise.all(
+      transcodings.map(async (transcoding) => {
+        const url = await this.storage.generatePreSignedUrlForTranscoding(
+          video,
+          transcoding.targetQuality as any,
+        );
+        return {
+          ...transcoding,
+          url: url.previewUrl,
+        };
+      }),
+    );
 
     return {
       ...video,
-      url:
-        video.status === VideoStatus.READY
-          ? await this.storage.generatePreSignedUrlForVideo(
-              video,
-              Operation.GET,
-            )
-          : undefined,
+      url: videoUrl?.previewUrl,
+      thumbnail: thumbnailUrl?.previewUrl,
+      progress: 100,
+      User: {
+        ...video.User,
+        avatar: userAvatarUrl?.previewUrl,
+      },
+      transcodings: transcodingsWithUrl,
     };
   }
 

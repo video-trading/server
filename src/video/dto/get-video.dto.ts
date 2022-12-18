@@ -1,8 +1,7 @@
 import { Video, VideoStatus } from '@prisma/client';
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, PartialType } from '@nestjs/swagger';
 
 export class GetVideoDto implements Video {
-  subcategoryId: string;
   @ApiProperty({
     enum: VideoStatus,
   })
@@ -41,4 +40,12 @@ export class GetVideoDto implements Video {
     description: 'Video progress in percentage (0-100)',
   })
   progress: number;
+}
+
+export class GetVideoDetailDto extends GetVideoDto {
+  @ApiProperty()
+  User: any;
+
+  @ApiProperty()
+  transcodings: any;
 }

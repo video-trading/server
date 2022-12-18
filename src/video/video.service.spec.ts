@@ -357,7 +357,9 @@ describe('VideoService', () => {
       },
     );
 
-    const newVideo = await service.findOne(createdVideo.id);
+    const newVideo = await prisma.video.findUnique({
+      where: { id: createdVideo.id },
+    });
     expect(newVideo.thumbnail).toBeDefined();
     expect(analyzingResult.quality).toBe(VideoQuality.Quality360p);
   });
