@@ -13,6 +13,8 @@ import { BlockchainService } from './blockchain/blockchain.service';
 import { PlaylistModule } from './playlist/playlist.module';
 import { CategoryModule } from './category/category.module';
 import { MessageQueue } from './common/messageQueue';
+import { PaymentModule } from './payment/payment.module';
+import { TransactionModule } from './transaction/transaction.module';
 
 @Module({
   imports: [
@@ -37,6 +39,8 @@ import { MessageQueue } from './common/messageQueue';
     UserModule,
     PlaylistModule,
     CategoryModule,
+    PaymentModule,
+    TransactionModule,
   ],
   controllers: [AppController],
   providers: [AppService, BlockchainService],
