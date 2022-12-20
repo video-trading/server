@@ -106,6 +106,7 @@ describe('PlaylistService', () => {
         title: 'Test Video',
         fileName: 'test-video.mp4',
         userId: userId,
+        ownerId: userId,
       },
     });
     const updatedPlaylist = await service.addVideo(
@@ -132,6 +133,7 @@ describe('PlaylistService', () => {
         title: 'Test Video',
         fileName: 'test-video.mp4',
         userId: userId,
+        ownerId: userId,
       },
     });
     const updatedPlaylist = await service.addVideo(

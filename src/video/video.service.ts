@@ -36,6 +36,11 @@ export class VideoService {
             id: user,
           },
         },
+        Owner: {
+          connect: {
+            id: user,
+          },
+        },
       },
     });
   }
@@ -109,6 +114,7 @@ export class VideoService {
         SalesInfo: true,
         Category: true,
         User: true,
+        Owner: true,
       },
     });
     const transcodings = await this.transcodingService.findAll(id);

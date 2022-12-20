@@ -37,15 +37,19 @@ model User {
   version Int @default(0)
 
   // video
-  Playlist Playlist[]
-  Videos   Video[]
+  Playlist     Playlist[]
+  OwnedVideo   Video[]    @relation("owner")
+  CreatedVideo Video[]
 
   // web3
   Wallet   Wallet @relation(fields: [walletId], references: [id])
   walletId String @unique @db.ObjectId
 
-  Followings  SubscriptionRelation[] @relation("following")
-  Subscribers SubscriptionRelation[]
+  Followings           SubscriptionRelation[] @relation("following")
+  Subscribers          SubscriptionRelation[]
+  SendTransactions     TransactionHistory[]   @relation("sendTransactions")
+  ReceivedTransactions TransactionHistory[]   @relation("receivedTransactions")
+  SalesLockInfo        SalesLockInfo?
 }
 
 model SubscriptionRelation {
@@ -91,8 +95,13 @@ model Video {
 
   version Int @default(0)
 
-  Category   Category? @relation(fields: [categoryId], references: [id])
-  categoryId String?   @db.ObjectId
+  Category      Category?            @relation(fields: [categoryId], references: [id])
+  categoryId    String?              @db.ObjectId
+  Transaction   TransactionHistory[]
+  SalesLockInfo SalesLockInfo?
+
+  Owner   User   @relation("owner", fields: [ownerId], references: [id])
+  ownerId String @db.ObjectId
 }
 
 model SalesInfo {
@@ -101,10 +110,27 @@ model SalesInfo {
   updatedAt DateTime? @updatedAt
   // price
   price     Int
-  tokenId   String?   @unique
+  tokenId   String?
   // video
   Video     Video     @relation(fields: [videoId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   videoId   String    @unique
+}
+
+model SalesLockInfo {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  lockUntil DateTime
+  // sales info
+  video     Video    @relation(fields: [videoId], references: [id])
+  videoId   String   @unique
+
+  lockedBy User   @relation(fields: [userId], references: [id])
+  userId   String @unique @db.ObjectId
+
+  // create index on lockUntil
+  @@index([lockUntil], name: "lockUntil")
 }
 
 model Comment {
@@ -148,8 +174,27 @@ model Transcoding {
   targetQuality String
   videoId       String
   status        TranscodingStatus @default(PENDING)
+
   // unique together with videoId and targetQuality
   @@unique([videoId, targetQuality])
+}
+
+model TransactionHistory {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  // transaction info
+  txHash    String
+  value     String
+  // video
+  Video     Video?   @relation(fields: [videoId], references: [id])
+  videoId   String?  @db.ObjectId
+  // user
+  From      User?    @relation("sendTransactions", fields: [fromId], references: [id])
+  fromId    String?  @db.ObjectId
+
+  To   User?   @relation("receivedTransactions", fields: [toId], references: [id])
+  toId String? @db.ObjectId
 }
 
 enum VideoStatus {

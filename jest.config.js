@@ -9,7 +9,7 @@ module.exports = {
   collectCoverageFrom: ['**/*.(t|j)s'],
   coverageDirectory: '../coverage',
   testEnvironment: 'node',
-  testTimeout: 30000,
+  testTimeout: 50000,
   coveragePathIgnorePatterns: [
     '/node_modules/',
     // every .module.ts file is a module, so it's not tested directly

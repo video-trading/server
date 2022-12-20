@@ -19,6 +19,7 @@ specifiers:
   '@types/amqplib': ^0.10.0
   '@types/aws-lambda': ^8.10.109
   '@types/bcrypt': ^5.0.0
+  '@types/braintree': ^3.3.4
   '@types/express': ^4.17.15
   '@types/jest': 29.2.4
   '@types/node': ^18.11.15
@@ -32,9 +33,11 @@ specifiers:
   aws-sdk: ^2.1275.0
   axios: ^1.2.1
   bcrypt: ^5.1.0
+  braintree: ^3.12.0
   bson-objectid: ^2.0.4
   class-transformer: ^0.5.1
   class-validator: ^0.14.0
+  dayjs: ^1.11.7
   dotenv: ^16.0.3
   eslint: ^8.29.0
   eslint-config-prettier: ^8.5.0
@@ -75,12 +78,15 @@ dependencies:
   '@nestjs/swagger': 6.1.4_4fhhxyztwhblafku3krlstrun4
   '@prisma/client': 4.7.1_prisma@4.7.1
   '@types/amqplib': 0.10.0
+  '@types/braintree': 3.3.4
   amqplib: 0.10.3
   aws-lambda: 1.0.7
   aws-sdk: 2.1275.0
   axios: 1.2.1
+  braintree: 3.12.0
   class-transformer: 0.5.1
   class-validator: 0.14.0
+  dayjs: 1.11.7
   dotenv: 16.0.3
   ethers: 5.7.2
   passport: 0.6.0
@@ -2239,6 +2245,10 @@ packages:
     resolution: {integrity: sha512-0hYQ8SB4Db5zvZB4axdMHGwEaQjkZzFjQiN9LVYvIFB2nSUHW9tYpxWriPrWDASIxiaXax83REcLxuSdnGPZtw==}
     dev: true
 
+  /@braintree/wrap-promise/2.1.0:
+    resolution: {integrity: sha512-UIrJB+AfKU0CCfbMoWrsGpd2D/hBpY/SGgFI6WRHPOwhaZ3g9rz1weiJ6eb6L9KgVyunT7s2tckcPkbHw+NzeA==}
+    dev: false
+
   /@colors/colors/1.5.0:
     resolution: {integrity: sha512-ooWCrlZP11i8GImSjTHYHLkvFDP48nS4+204nGb1RiX/WXYHmJA2III9/e2DWVabCESdW7hBAEzHRqUn9OUVvQ==}
     engines: {node: '>=0.1.90'}
@@ -3308,6 +3318,12 @@ packages:
       '@types/node': 18.11.15
     dev: true
 
+  /@types/braintree/3.3.4:
+    resolution: {integrity: sha512-zl4FRr5y9uzV28TvEOMLNFiPXUWL2ntliDiFCocpNpuCFgPvVCr9YV5dfhYE9JeaivGdB+8OMfQ2duTeEaDkdg==}
+    dependencies:
+      '@types/node': 18.11.15
+    dev: false
+
   /@types/connect/3.4.35:
     resolution: {integrity: sha512-cdeYyv4KWoEgpBISTxWvqYsVy444DOqehiF3fM3ne10AmJ62RSyNkUnxMJXHQWRQQX2eR94m5y1IZyDwBjV9FQ==}
     dependencies:
@@ -4138,6 +4154,15 @@ packages:
       fill-range: 7.0.1
     dev: true
 
+  /braintree/3.12.0:
+    resolution: {integrity: sha512-04h1y4Fc2uIGMmx+uMQfPbCx1WwrvCpOGV1AC0Q1dBaSnCLHbYSU5FyVIzr1fNRMkCWsmwi/nxpQUWW42YqSIg==}
+    engines: {node: '>=10.0', npm: '>=6'}
+    dependencies:
+      '@braintree/wrap-promise': 2.1.0
+      dateformat: 4.5.1
+      xml2js: 0.4.23
+    dev: false
+
   /brorand/1.1.0:
     resolution: {integrity: sha512-cKV8tMCEpQs4hK/ik71d6LrPOnpkpGBR0wzxqr68g2m/LB2GxVYQroAjMJZRVM1Y4BCjCKc3vAamxSzOY2RP+w==}
     dev: false
@@ -4498,6 +4523,14 @@ packages:
       shebang-command: 2.0.0
       which: 2.0.2
     dev: true
+
+  /dateformat/4.5.1:
+    resolution: {integrity: sha512-OD0TZ+B7yP7ZgpJf5K2DIbj3FZvFvxgFUuaqA/V5zTjAtAAXZ1E8bktHxmAGs4x5b7PflqA9LeQ84Og7wYtF7Q==}
+    dev: false
+
+  /dayjs/1.11.7:
+    resolution: {integrity: sha512-+Yw9U6YO5TQohxLcIkrXBeY73WP3ejHWVvx8XCk3gxvQDCTEmS48ZrSZCKciI7Bhl/uCMyxYtE9UqRILmFphkQ==}
+    dev: false
 
   /debug/2.6.9:
     resolution: {integrity: sha512-bC7ElrdJaJnPbAP+1EotYvqZsb3ecl5wi6Bfi6BJTUcNowp6cvspg0jXznRTKDjm/E7AdgFBVeAPVMNcKGsHMA==}
@@ -8250,6 +8283,19 @@ packages:
     dependencies:
       sax: 1.2.1
       xmlbuilder: 9.0.7
+    dev: false
+
+  /xml2js/0.4.23:
+    resolution: {integrity: sha512-ySPiMjM0+pLDftHgXY4By0uswI3SPKLDw/i3UXbnO8M/p28zqexCUoPmQFrYD+/1BzhGJSs2i1ERWKJAtiLrug==}
+    engines: {node: '>=4.0.0'}
+    dependencies:
+      sax: 1.2.1
+      xmlbuilder: 11.0.1
+    dev: false
+
+  /xmlbuilder/11.0.1:
+    resolution: {integrity: sha512-fDlsI/kFEx7gLvbecc0/ohLG50fugQp8ryHzMTuW9vSa1GJ0XYWKnhsUx7oie3G98+r56aTQIUB4kht42R3JvA==}
+    engines: {node: '>=4.0'}
     dev: false
 
   /xmlbuilder/9.0.7:
