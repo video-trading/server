@@ -89,5 +89,10 @@
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"
+  },
+  "config": {
+    "mongodbMemoryServer": {
+      "version": "6.0.0"
+    }
   }
 }

@@ -16,9 +16,4 @@ export class CheckoutDto {
   @IsString()
   @IsNotEmpty()
   videoId: string;
-
-  @ApiProperty()
-  @IsString()
-  @IsNotEmpty()
-  toUserId: string;
 }

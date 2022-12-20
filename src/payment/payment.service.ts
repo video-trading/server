@@ -45,21 +45,20 @@ export class PaymentService {
     amount: string,
     videoId: string,
     fromUserId: string,
-    toUserId: string,
   ): Promise<TransactionHistory> {
     // find if from user and to user exists
     const fromUserPromise = this.userService.findOne(fromUserId);
-    const toUserPromise = this.userService.findOne(toUserId);
     const videoPromise = this.prismaService.video.findUnique({
       where: {
         id: videoId,
       },
     });
-    const [fromUser, toUser, video] = await Promise.all([
+    const [fromUser, video] = await Promise.all([
       fromUserPromise,
-      toUserPromise,
       videoPromise,
     ]);
+
+    const toUser = await this.userService.findOne(video.ownerId);
 
     if (!fromUser) {
       throw new BadRequestException('From user does not exist');
@@ -74,7 +73,7 @@ export class PaymentService {
     const { reason, can } = await this.transactionService.preCheckTransaction(
       videoId,
       fromUserId,
-      toUserId,
+      toUser.id,
       amount,
     );
 
@@ -93,12 +92,12 @@ export class PaymentService {
     if (result.success) {
       const transactionHistory = await this.transactionService.create({
         fromUserId: fromUserId,
-        toUserId: toUserId,
+        toUserId: toUser.id,
         txHash: result.transaction.id,
         value: result.transaction.amount,
         videoId: videoId,
       });
-      await this.rewardUser(amount, fromUserId, toUserId);
+      await this.rewardUser(amount, fromUserId, toUser.id);
       await this.unlockVideoForSale(videoId);
       return transactionHistory;
     }

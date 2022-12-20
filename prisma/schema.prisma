@@ -37,8 +37,9 @@ model User {
   version Int @default(0)
 
   // video
-  Playlist Playlist[]
-  Videos   Video[]
+  Playlist     Playlist[]
+  OwnedVideo   Video[]    @relation("owner")
+  CreatedVideo Video[]
 
   // web3
   Wallet   Wallet @relation(fields: [walletId], references: [id])
@@ -98,6 +99,9 @@ model Video {
   categoryId    String?              @db.ObjectId
   Transaction   TransactionHistory[]
   SalesLockInfo SalesLockInfo?
+
+  Owner   User   @relation("owner", fields: [ownerId], references: [id])
+  ownerId String @db.ObjectId
 }
 
 model SalesInfo {

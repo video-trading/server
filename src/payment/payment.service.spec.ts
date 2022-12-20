@@ -7,6 +7,7 @@ import { UserService } from '../user/user.service';
 import { BlockchainService } from '../blockchain/blockchain.service';
 import { StorageService } from '../storage/storage.service';
 import dayjs from 'dayjs';
+import * as process from 'process';
 
 jest.mock('braintree', () => ({
   Environment: {
@@ -39,7 +40,6 @@ describe('PaymentService', () => {
   let userId: string;
   let userId2: string;
   let userId3: string;
-  let videoId: string;
 
   beforeAll(async () => {
     mongod = await MongoMemoryReplSet.create({
@@ -53,6 +53,7 @@ describe('PaymentService', () => {
 
   beforeEach(async () => {
     process.env.DATABASE_URL = mongod.getUri('video');
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         TransactionService,
@@ -133,6 +134,11 @@ describe('PaymentService', () => {
             id: userId,
           },
         },
+        Owner: {
+          connect: {
+            id: userId,
+          },
+        },
         SalesInfo: {
           create: {
             price: 1,
@@ -145,7 +151,6 @@ describe('PaymentService', () => {
       '1',
       '1',
       video.id,
-      userId,
       userId2,
     );
 
@@ -161,6 +166,11 @@ describe('PaymentService', () => {
         description: '1',
         fileName: '1',
         User: {
+          connect: {
+            id: userId,
+          },
+        },
+        Owner: {
           connect: {
             id: userId,
           },
@@ -184,7 +194,7 @@ describe('PaymentService', () => {
     });
 
     await expect(() =>
-      service.createTransaction('1', '1', video.id, userId, userId2),
+      service.createTransaction('1', '1', video.id, userId),
     ).rejects.toThrowError();
     expect(prisma.salesLockInfo.count()).resolves.toBe(1);
   });

@@ -91,6 +91,11 @@ describe('TransactionService', () => {
             id: userId,
           },
         },
+        Owner: {
+          connect: {
+            id: userId,
+          },
+        },
       },
     });
 
@@ -201,6 +206,11 @@ describe('TransactionService', () => {
             id: userId2,
           },
         },
+        Owner: {
+          connect: {
+            id: userId,
+          },
+        },
         SalesInfo: {
           create: {
             price: 10,
@@ -230,6 +240,11 @@ describe('TransactionService', () => {
             id: userId2,
           },
         },
+        Owner: {
+          connect: {
+            id: userId,
+          },
+        },
       },
     });
 
@@ -252,6 +267,11 @@ describe('TransactionService', () => {
         User: {
           connect: {
             id: userId2,
+          },
+        },
+        Owner: {
+          connect: {
+            id: userId,
           },
         },
         SalesInfo: {
@@ -281,6 +301,11 @@ describe('TransactionService', () => {
         User: {
           connect: {
             id: userId2,
+          },
+        },
+        Owner: {
+          connect: {
+            id: userId,
           },
         },
         SalesInfo: {

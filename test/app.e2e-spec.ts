@@ -8,6 +8,7 @@ import { Environments } from '../src/common/environment';
 import { UserService } from '../src/user/user.service';
 import { PrismaService } from '../src/prisma.service';
 import { VideoService } from '../src/video/video.service';
+import process from 'process';
 
 jest.mock('axios', () => ({
   get: jest.fn().mockImplementation(),
@@ -28,6 +29,30 @@ jest.mock('@aws-sdk/client-s3', () => {
   };
 });
 
+jest.mock('braintree', () => ({
+  Environment: {
+    Sandbox: 'sandbox',
+  },
+  BraintreeGateway: jest.fn().mockImplementation(() => ({
+    clientToken: {
+      generate: jest.fn().mockImplementation(() => ({
+        clientToken: 'client',
+      })),
+    },
+    transaction: {
+      sale: jest.fn().mockImplementation(() => ({
+        transaction: {
+          id: 'id',
+          amount: 'amount',
+          status: 'status',
+          success: true,
+        },
+        success: true,
+      })),
+    },
+  })),
+}));
+
 jest.mock('@aws-sdk/s3-request-presigner', () => {
   return {
     getSignedUrl: jest
@@ -41,7 +66,9 @@ describe('AppController (e2e)', () => {
   let app: INestApplication;
   let mongod: MongoMemoryReplSet;
   let accessKey: string;
+  let accessKey2: string;
   let userId: string;
+  let userId2: string;
   let prisma: PrismaService;
   let videoService: VideoService;
 
@@ -75,13 +102,25 @@ describe('AppController (e2e)', () => {
       username: 'abc',
     });
 
+    const user2 = await userService.create({
+      email: '2',
+      name: '2',
+      password: 'password',
+      username: 'abc2',
+    });
+
     userId = user.id;
+    userId2 = user2.id;
+
     accessKey = jwt.sign({ userId: userId }, Environments.jwt_secret);
+    accessKey2 = jwt.sign({ userId: userId2 }, Environments.jwt_secret);
+
     await app.init();
   });
 
   afterEach(async () => {
     await prisma.$disconnect();
+    await prisma.salesLockInfo.deleteMany();
   });
 
   it('Should be able to signIn', async () => {
@@ -212,6 +251,105 @@ describe('AppController (e2e)', () => {
       .expect(200)
       .expect((response) => {
         expect(response.body.status).toBe('COMPLETED');
+      });
+  });
+
+  it('Should be able to upload video for sale', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/video')
+      .set('Authorization', `Bearer ${accessKey}`)
+      .send({
+        title: 'Test Video',
+        fileName: 'test.mov',
+        description: 'Test Video',
+      })
+      .expect(201)
+      .expect((response) => {
+        expect(response.body.video).toHaveProperty('id');
+        expect(response.body.video).toHaveProperty('title', 'Test Video');
+        expect(response.body.video).toHaveProperty('fileName', 'test.mov');
+      });
+
+    // get video by id
+    const videoId = response.body.video.id;
+    await request(app.getHttpServer())
+      .get(`/video/${videoId}`)
+      .expect(200)
+      .expect((response) => {
+        expect(response.body).toHaveProperty('id', videoId);
+        expect(response.body).toHaveProperty('title', 'Test Video');
+        expect(response.body).toHaveProperty('fileName', 'test.mov');
+      });
+
+    // update video by id
+    await request(app.getHttpServer())
+      .patch(`/video/${videoId}`)
+      .set('Authorization', `Bearer ${accessKey}`)
+      .send({
+        title: 'Updated Video',
+        description: 'Updated Video',
+        SalesInfo: {
+          price: 100,
+        },
+      })
+      .expect(200)
+      .expect((response) => {
+        expect(response.body).toHaveProperty('id', videoId);
+        expect(response.body).toHaveProperty('title', 'Updated Video');
+        expect(response.body).toHaveProperty('fileName', 'test.mov');
+      });
+
+    await request(app.getHttpServer())
+      .patch(`/video/${videoId}/uploaded`)
+      .set('Authorization', `Bearer ${accessKey}`)
+      .expect(200);
+
+    // start analyzing process
+    await request(app.getHttpServer())
+      .post(`/video/${videoId}/publish`)
+      .set('Authorization', `Bearer ${accessKey}`)
+      .expect(201)
+      .expect((response) => {
+        expect(response.body).toHaveProperty('success');
+      });
+
+    // submit analyzing result
+    await request(app.getHttpServer())
+      .post(`/video/${videoId}/analyzing/result`)
+      .set('Authorization', `Bearer ${accessKey}`)
+      .send({
+        quality: '1080p',
+        length: 20,
+        frameRate: '40',
+      })
+      .expect(201)
+      .expect((response) => {
+        expect(response.body.length).toBe(6);
+      });
+
+    // get token from client
+    await request(app.getHttpServer())
+      .get(`/payment/client_token`)
+      .set('Authorization', `Bearer ${accessKey}`)
+      .expect(200)
+      .expect((response) => {
+        expect(response.body).toHaveProperty('token');
+      });
+
+    // make a payment
+    await request(app.getHttpServer())
+      .post(`/payment/checkout`)
+      .set('Authorization', `Bearer ${accessKey2}`)
+      .send({
+        nonce: 'fake-valid-nonce',
+        amount: 100,
+        videoId,
+      })
+      .expect(201)
+      .expect((response) => {
+        expect(response.body).toHaveProperty('txHash');
+        expect(prisma.salesLockInfo.count()).resolves.toBe(0);
+        expect(prisma.salesInfo.count()).resolves.toBe(1);
       });
   });
 

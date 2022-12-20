@@ -165,6 +165,11 @@ describe('VideoController', () => {
             id: userId,
           },
         },
+        Owner: {
+          connect: {
+            id: userId,
+          },
+        },
       },
     });
 
@@ -180,6 +185,11 @@ describe('VideoController', () => {
           },
         },
         User: {
+          connect: {
+            id: userId,
+          },
+        },
+        Owner: {
           connect: {
             id: userId,
           },
@@ -247,6 +257,11 @@ describe('VideoController', () => {
             id: userId,
           },
         },
+        Owner: {
+          connect: {
+            id: userId,
+          },
+        },
       },
     });
 
@@ -262,6 +277,11 @@ describe('VideoController', () => {
           },
         },
         User: {
+          connect: {
+            id: userId,
+          },
+        },
+        Owner: {
           connect: {
             id: userId,
           },

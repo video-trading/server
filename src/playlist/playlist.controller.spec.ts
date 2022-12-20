@@ -276,6 +276,11 @@ describe('PlaylistController', () => {
             id: userId,
           },
         },
+        Owner: {
+          connect: {
+            id: userId,
+          },
+        },
       },
     });
 
@@ -286,6 +291,11 @@ describe('PlaylistController', () => {
         thumbnail: 'https://www.youtube.com/watch?v=123',
         fileName: '123',
         User: {
+          connect: {
+            id: userId,
+          },
+        },
+        Owner: {
           connect: {
             id: userId,
           },
@@ -344,6 +354,11 @@ describe('PlaylistController', () => {
         thumbnail: 'https://www.youtube.com/watch?v=123',
         fileName: '123',
         User: {
+          connect: {
+            id: userId,
+          },
+        },
+        Owner: {
           connect: {
             id: userId,
           },
