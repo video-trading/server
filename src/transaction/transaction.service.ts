@@ -23,7 +23,6 @@ export class TransactionService {
     videoId: string,
     fromUserId: string,
     toUserId: string,
-    amount: string,
   ): Promise<{ can: boolean; reason: string | undefined }> {
     try {
       const videoPromise = this.prisma.video.findUnique({
@@ -75,24 +74,18 @@ export class TransactionService {
         };
       }
 
-      if (fromUser.id === toUser.id) {
-        return {
-          can: false,
-          reason: 'Cannot purchase your own video',
-        };
-      }
+      //TODO: uncomment this when when it is ready to purchase video from other users
+      // if (fromUser.id === toUser.id) {
+      //   return {
+      //     can: false,
+      //     reason: 'Cannot purchase your own video',
+      //   };
+      // }
 
       if (video.SalesInfo === undefined || video.SalesInfo === null) {
         return {
           can: false,
           reason: 'Video not for sale',
-        };
-      }
-
-      if (video.SalesInfo.price !== parseInt(amount)) {
-        return {
-          can: false,
-          reason: `Invalid amount, expected ${video.SalesInfo.price} but got ${amount}`,
         };
       }
 
@@ -222,5 +215,17 @@ export class TransactionService {
       })),
       metadata: getPaginationMetaData(page, per, total),
     };
+  }
+
+  /**
+   * Get transaction by id
+   * @param id
+   */
+  async get(id: string) {
+    return this.prisma.transactionHistory.findUnique({
+      where: {
+        id,
+      },
+    });
   }
 }

@@ -147,12 +147,7 @@ describe('PaymentService', () => {
       },
     });
 
-    const payment = await service.createTransaction(
-      '1',
-      '1',
-      video.id,
-      userId2,
-    );
+    const payment = await service.createTransaction('1', video.id, userId2);
 
     expect(payment).toBeDefined();
     const locks = await prisma.salesLockInfo.findMany();
@@ -194,7 +189,7 @@ describe('PaymentService', () => {
     });
 
     await expect(() =>
-      service.createTransaction('1', '1', video.id, userId),
+      service.createTransaction('1', video.id, userId),
     ).rejects.toThrowError();
     expect(prisma.salesLockInfo.count()).resolves.toBe(1);
   });

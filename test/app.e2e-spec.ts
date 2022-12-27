@@ -89,7 +89,7 @@ describe('AppController (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-
+    process.env.RABBITMQ_URI = 'RABBITMQ_URI';
     const userService = moduleFixture.get<UserService>(UserService);
     videoService = moduleFixture.get<VideoService>(VideoService);
 

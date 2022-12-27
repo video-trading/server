@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { PaymentService } from './payment.service';
 import { JwtAuthGuard } from '../auth/jwt-auth-guard';
 import { ApiOkResponse } from '@nestjs/swagger';
@@ -14,8 +22,8 @@ export class PaymentController {
   @ApiOkResponse({
     description: 'Get client side token for payment',
   })
-  async getToken() {
-    const token = this.paymentService.getClientToken();
+  async getToken(@Req() req: RequestWithUser) {
+    const token = await this.paymentService.getClientToken();
     return { token };
   }
 
@@ -30,7 +38,6 @@ export class PaymentController {
   ) {
     return await this.paymentService.createTransaction(
       checkoutDto.nonce,
-      checkoutDto.amount,
       checkoutDto.videoId,
       req.user.userId,
     );

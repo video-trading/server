@@ -10,10 +10,5 @@ export class CheckoutDto {
   @ApiProperty()
   @IsString()
   @IsNotEmpty()
-  amount: string;
-
-  @ApiProperty()
-  @IsString()
-  @IsNotEmpty()
   videoId: string;
 }

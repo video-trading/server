@@ -223,7 +223,6 @@ describe('TransactionService', () => {
       videoForSale.id,
       userId,
       userId2,
-      '10',
     );
     expect(reason).toBeUndefined();
     expect(can).toBeTruthy();
@@ -252,43 +251,8 @@ describe('TransactionService', () => {
       videoForSale.id,
       userId,
       userId2,
-      '10',
     );
     expect(reason).toEqual('Video not for sale');
-    expect(can).toBeFalsy();
-  });
-
-  it('Should not be able to purchase a video if video price is higher than amount', async () => {
-    const videoForSale = await prisma.video.create({
-      data: {
-        title: '1',
-        description: '1',
-        fileName: '1',
-        User: {
-          connect: {
-            id: userId2,
-          },
-        },
-        Owner: {
-          connect: {
-            id: userId,
-          },
-        },
-        SalesInfo: {
-          create: {
-            price: 10,
-          },
-        },
-      },
-    });
-
-    const { can, reason } = await service.preCheckTransaction(
-      videoForSale.id,
-      userId,
-      userId2,
-      '9',
-    );
-    expect(reason).toEqual('Invalid amount, expected 10 but got 9');
     expect(can).toBeFalsy();
   });
 
@@ -330,7 +294,6 @@ describe('TransactionService', () => {
       videoForSale.id,
       userId,
       userId2,
-      '10',
     );
     expect(reason).toEqual('Video is locked');
     expect(can).toBeFalsy();

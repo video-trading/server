@@ -7,6 +7,30 @@ import { TransactionService } from '../transaction/transaction.service';
 import { BlockchainService } from '../blockchain/blockchain.service';
 import { StorageService } from '../storage/storage.service';
 
+jest.mock('braintree', () => ({
+  Environment: {
+    Sandbox: 'sandbox',
+  },
+  BraintreeGateway: jest.fn().mockImplementation(() => ({
+    clientToken: {
+      generate: jest.fn().mockImplementation(() => ({
+        clientToken: 'client',
+      })),
+    },
+    transaction: {
+      sale: jest.fn().mockImplementation(() => ({
+        transaction: {
+          id: 'id',
+          amount: 'amount',
+          status: 'status',
+          success: true,
+        },
+        success: true,
+      })),
+    },
+  })),
+}));
+
 describe('PaymentController', () => {
   let controller: PaymentController;
 

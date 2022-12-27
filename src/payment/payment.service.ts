@@ -29,20 +29,21 @@ export class PaymentService {
    */
   async getClientToken(): Promise<string> {
     const clientToken = await this.gateway.clientToken.generate({});
+    if (clientToken.errors) {
+      console.error(clientToken.message);
+      throw new BadRequestException(clientToken.message);
+    }
     return clientToken.clientToken;
   }
 
   /**
    * Create a new transaction
    * @param nonce The nonce from the client
-   * @param amount  The amount to charge
    * @param videoId The video id
    * @param fromUserId  The user id of the user who is paying
-   * @param toUserId  The user id of the user who is receiving the payment
    */
   async createTransaction(
     nonce: string,
-    amount: string,
     videoId: string,
     fromUserId: string,
   ): Promise<TransactionHistory> {
@@ -52,13 +53,19 @@ export class PaymentService {
       where: {
         id: videoId,
       },
+      include: {
+        SalesInfo: true,
+      },
     });
     const [fromUser, video] = await Promise.all([
       fromUserPromise,
       videoPromise,
     ]);
 
+    const amount = `${video.SalesInfo.price}`;
     const toUser = await this.userService.findOne(video.ownerId);
+
+    console.log('amount', amount);
 
     if (!fromUser) {
       throw new BadRequestException('From user does not exist');
@@ -74,7 +81,6 @@ export class PaymentService {
       videoId,
       fromUserId,
       toUser.id,
-      amount,
     );
 
     if (!can) {
@@ -123,23 +129,28 @@ export class PaymentService {
       .add(config.videoLockForSaleDuration, 'minutes')
       .toDate();
 
-    return this.prismaService.video.update({
-      where: {
-        id: videoId,
-      },
-      data: {
-        SalesLockInfo: {
-          create: {
-            lockedBy: {
-              connect: {
-                id: fromUserId,
+    try {
+      const result = this.prismaService.video.update({
+        where: {
+          id: videoId,
+        },
+        data: {
+          SalesLockInfo: {
+            create: {
+              lockedBy: {
+                connect: {
+                  id: fromUserId,
+                },
               },
+              lockUntil: lockedUntil,
             },
-            lockUntil: lockedUntil,
           },
         },
-      },
-    });
+      });
+      return result;
+    } catch (e) {
+      throw new BadRequestException('Video is already locked for sale');
+    }
   }
 
   /**
