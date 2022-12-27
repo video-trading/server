@@ -7,6 +7,14 @@ import { ApiOkResponse } from '@nestjs/swagger';
 export class TransactionController {
   constructor(private readonly transactionService: TransactionService) {}
 
+  @Get('by/:id')
+  @ApiOkResponse({
+    description: 'Get transaction by txId',
+  })
+  async get(@Param('id') id) {
+    return await this.transactionService.get(id);
+  }
+
   @Get('video/:videoId')
   @ApiOkResponse({
     description: 'Get all transactions for a video',

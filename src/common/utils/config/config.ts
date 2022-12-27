@@ -3,5 +3,5 @@ export const config = {
   numberOfItemsPerPage: 10,
   preSignedUrlExpiration: 60 * 60 * 24, // 24 hours
   jwtTokenExpiration: 60 * 60 * 24 * 7, // 7 days
-  videoLockForSaleDuration: 30, // 30 minutes,
+  videoLockForSaleDuration: 1, // 30 minutes,
 };
