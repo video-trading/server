@@ -3,3 +3,9 @@ export interface RequestWithUser {
     userId: string;
   };
 }
+
+export interface RequestWithOptionalUser {
+  user?: {
+    userId: string;
+  };
+}

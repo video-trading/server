@@ -53,4 +53,9 @@ export class GetVideoDetailDto extends GetVideoDto {
 
   @ApiProperty()
   transcodings: any;
+
+  @ApiProperty({
+    description: 'If video is purchasable based on the user',
+  })
+  purchasable: boolean;
 }

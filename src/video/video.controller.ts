@@ -7,6 +7,7 @@ import {
   Patch,
   Post,
   Query,
+  Req,
   Request,
   UseGuards,
 } from '@nestjs/common';
@@ -37,11 +38,12 @@ import { CreateAnalyzingResult } from './dto/create-analyzing.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth-guard';
 import { GetVideoDto } from './dto/get-video.dto';
 import { UpdateVideoDto } from './dto/update-video.dto';
-import { RequestWithUser } from '../common/types';
+import { RequestWithOptionalUser, RequestWithUser } from '../common/types';
 import { PublishVideoDto } from './dto/publish-video.dto';
 import { CreateAnalyzingJobDto } from './dto/create-analyzing-job.dto';
 import { MessageQueue } from '../common/messageQueue';
 import { GetMyVideoDetailDto } from './dto/get-my-video-detail.dto';
+import { OptionalJwtAuthGuard } from '../auth/optional-jwt-auth-guard';
 
 @Controller('video')
 @ApiTags('video')
@@ -158,8 +160,14 @@ export class VideoController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.videoService.findOne(id);
+  @UseGuards(OptionalJwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOkResponse({
+    description:
+      'Get a video. If user is authenticated, then set purchasable to true if the user has not purchased the video',
+  })
+  findOne(@Param('id') id: string, @Req() req: RequestWithOptionalUser) {
+    return this.videoService.findOne(id, req.user?.userId);
   }
 
   @UseGuards(JwtAuthGuard)

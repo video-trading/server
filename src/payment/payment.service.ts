@@ -40,15 +40,15 @@ export class PaymentService {
    * Create a new transaction
    * @param nonce The nonce from the client
    * @param videoId The video id
-   * @param fromUserId  The user id of the user who is paying
+   * @param toUserId  The user id of the user who is paying
    */
   async createTransaction(
     nonce: string,
     videoId: string,
-    fromUserId: string,
+    toUserId: string,
   ): Promise<TransactionHistory> {
     // find if from user and to user exists
-    const fromUserPromise = this.userService.findOne(fromUserId);
+    const toUserPromise = this.userService.findOne(toUserId);
     const videoPromise = this.prismaService.video.findUnique({
       where: {
         id: videoId,
@@ -57,30 +57,25 @@ export class PaymentService {
         SalesInfo: true,
       },
     });
-    const [fromUser, video] = await Promise.all([
-      fromUserPromise,
-      videoPromise,
-    ]);
+    const [toUser, video] = await Promise.all([toUserPromise, videoPromise]);
 
     const amount = `${video.SalesInfo.price}`;
-    const toUser = await this.userService.findOne(video.ownerId);
+    const fromUser = await this.userService.findOne(video.ownerId);
 
-    console.log('amount', amount);
-
-    if (!fromUser) {
+    if (!toUser) {
       throw new BadRequestException('From user does not exist');
     }
 
-    if (!toUser) {
+    if (!fromUser) {
       throw new BadRequestException('To user does not exist');
     }
 
-    await this.lockVideoForSale(videoId, fromUserId);
+    await this.lockVideoForSale(videoId, toUserId);
     // pre-check if video is ready for sale
     const { reason, can } = await this.transactionService.preCheckTransaction(
       videoId,
-      fromUserId,
-      toUser.id,
+      toUserId,
+      fromUser.id,
     );
 
     if (!can) {
@@ -95,15 +90,26 @@ export class PaymentService {
       },
     });
 
+    // if success, create transaction and change the ownership of the video
     if (result.success) {
       const transactionHistory = await this.transactionService.create({
-        fromUserId: fromUserId,
+        fromUserId: fromUser.id,
         toUserId: toUser.id,
         txHash: result.transaction.id,
         value: result.transaction.amount,
         videoId: videoId,
       });
-      await this.rewardUser(amount, fromUserId, toUser.id);
+
+      await this.prismaService.video.update({
+        where: {
+          id: videoId,
+        },
+        data: {
+          ownerId: toUser.id,
+        },
+      });
+
+      await this.rewardUser(amount, fromUser.id, toUserId);
       await this.unlockVideoForSale(videoId);
       return transactionHistory;
     }
@@ -122,9 +128,9 @@ export class PaymentService {
   /**
    * Lock video for sale
    * @param videoId
-   * @param fromUserId
+   * @param toUserId Sale to user id
    */
-  async lockVideoForSale(videoId: string, fromUserId: string) {
+  async lockVideoForSale(videoId: string, toUserId: string) {
     const lockedUntil = dayjs()
       .add(config.videoLockForSaleDuration, 'minutes')
       .toDate();
@@ -139,7 +145,7 @@ export class PaymentService {
             create: {
               lockedBy: {
                 connect: {
-                  id: fromUserId,
+                  id: toUserId,
                 },
               },
               lockUntil: lockedUntil,

@@ -74,13 +74,12 @@ export class TransactionService {
         };
       }
 
-      //TODO: uncomment this when when it is ready to purchase video from other users
-      // if (fromUser.id === toUser.id) {
-      //   return {
-      //     can: false,
-      //     reason: 'Cannot purchase your own video',
-      //   };
-      // }
+      if (fromUser.id === toUser.id) {
+        return {
+          can: false,
+          reason: 'Cannot purchase your own video',
+        };
+      }
 
       if (video.SalesInfo === undefined || video.SalesInfo === null) {
         return {
