@@ -105,7 +105,15 @@ export class VideoService {
     };
   }
 
-  async findOne(id: string): Promise<GetVideoDetailDto> {
+  /**
+   * Get video detail by id and will return the data based on the user's authentication
+   * @param id
+   * @param userId
+   */
+  async findOne(
+    id: string,
+    userId: string | undefined = undefined,
+  ): Promise<GetVideoDetailDto> {
     const video = await this.prisma.video.findUnique({
       where: {
         id,
@@ -148,6 +156,7 @@ export class VideoService {
       }),
     );
 
+    const purchasable = userId ? userId !== video.Owner.id : false;
     return {
       ...video,
       url: videoUrl?.previewUrl,
@@ -158,6 +167,7 @@ export class VideoService {
         avatar: userAvatarUrl?.previewUrl,
       },
       transcodings: transcodingsWithUrl,
+      purchasable: purchasable,
     };
   }
 

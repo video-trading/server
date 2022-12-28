@@ -461,4 +461,33 @@ describe('VideoService', () => {
       service.findMyVideoDetailById(createdVideo.id, 'userId'),
     ).rejects.toThrow(UnauthorizedException);
   });
+
+  it('Should get a valid purchasable field value based on the user', async () => {
+    const video: CreateVideoDto = {
+      title: 'Test Video',
+      fileName: 'test-video.mp4',
+      description: '',
+    };
+    const createdVideo = await service.create(video, userId);
+    await service.onVideoUploaded(createdVideo.id);
+    await service.publish(createdVideo.id, {
+      SalesInfo: undefined,
+      description: '',
+      title: '',
+    });
+    await service.submitAnalyzingResult(createdVideo.id, {
+      quality: VideoQuality.Quality360p,
+      length: 20,
+      frameRate: '40',
+    });
+
+    let found = await service.findOne(createdVideo.id, createdVideo.ownerId);
+    expect(found.purchasable).toBeFalsy();
+
+    found = await service.findOne(createdVideo.id, 'userId2');
+    expect(found.purchasable).toBeTruthy();
+
+    found = await service.findOne(createdVideo.id);
+    expect(found.purchasable).toBeFalsy();
+  });
 });
