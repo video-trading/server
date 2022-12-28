@@ -155,6 +155,10 @@ export class TransactionService {
       where: {
         videoId,
       },
+      include: {
+        From: true,
+        To: true,
+      },
       skip: (page - 1) * per,
       take: per,
     });
@@ -194,6 +198,10 @@ export class TransactionService {
 
     const transactionsPromise = this.prisma.transactionHistory.findMany({
       where: filter,
+      include: {
+        From: true,
+        To: true,
+      },
       skip: (page - 1) * per,
       take: per,
     });
