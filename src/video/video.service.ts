@@ -112,7 +112,11 @@ export class VideoService {
       },
       include: {
         SalesInfo: true,
-        Category: true,
+        Category: {
+          include: {
+            parent: true,
+          },
+        },
         User: true,
         Owner: true,
       },
