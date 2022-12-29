@@ -7,10 +7,14 @@ import {
 } from './dto/get-transaction-by-user.dto';
 import { getPaginationMetaData, Pagination } from '../common/pagination';
 import { TransactionHistory } from '@prisma/client';
+import { StorageService } from '../storage/storage.service';
 
 @Injectable()
 export class TransactionService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly storage: StorageService,
+  ) {}
 
   /**
    * Pre-check if video can be purchased
@@ -200,6 +204,7 @@ export class TransactionService {
       include: {
         From: true,
         To: true,
+        Video: true,
       },
       skip: (page - 1) * per,
       take: per,
@@ -214,12 +219,28 @@ export class TransactionService {
       totalPromise,
     ]);
 
+    // generate pre-signed cover for each transaction
+    const transactionsWithVideo = await Promise.all(
+      transactions.map(async (transaction) => {
+        const coverUrl = await this.storage.generatePreSignedUrlForThumbnail(
+          transaction.Video,
+        );
+        return {
+          ...transaction,
+          Video: {
+            ...transaction.Video,
+            thumbnail: coverUrl.previewUrl,
+          },
+          type:
+            transaction.fromId === userId
+              ? TransactionType.SENT
+              : TransactionType.RECEIVED,
+        };
+      }),
+    );
+
     return {
-      items: transactions.map<GetTransactionByUserDto>((t) => ({
-        ...t,
-        type:
-          t.fromId === userId ? TransactionType.SENT : TransactionType.RECEIVED,
-      })),
+      items: transactionsWithVideo,
       metadata: getPaginationMetaData(page, per, total),
     };
   }
@@ -229,10 +250,27 @@ export class TransactionService {
    * @param id
    */
   async get(id: string) {
-    return this.prisma.transactionHistory.findUnique({
+    const transaction = await this.prisma.transactionHistory.findUnique({
       where: {
         id,
       },
+      include: {
+        From: true,
+        To: true,
+        Video: true,
+      },
     });
+
+    const url = await this.storage.generatePreSignedUrlForThumbnail(
+      transaction.Video,
+    );
+
+    return {
+      ...transaction,
+      Video: {
+        ...transaction.Video,
+        thumbnail: url.previewUrl,
+      },
+    };
   }
 }

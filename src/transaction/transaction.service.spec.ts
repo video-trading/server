@@ -3,6 +3,30 @@ import { TransactionService } from './transaction.service';
 import { MongoMemoryReplSet } from 'mongodb-memory-server';
 import { PrismaService } from '../prisma.service';
 import { TransactionType } from './dto/get-transaction-by-user.dto';
+import { StorageService } from '../storage/storage.service';
+
+jest.mock('@aws-sdk/client-s3', () => {
+  return {
+    HeadObjectCommand: jest.fn().mockImplementation(),
+    PutObjectCommand: jest.fn().mockImplementation(),
+    GetObjectCommand: jest.fn().mockImplementation(),
+    DeleteObjectCommand: jest.fn().mockImplementation(),
+    S3Client: jest.fn().mockImplementation(() => {
+      return {
+        send: jest.fn().mockImplementation(),
+      };
+    }),
+  };
+});
+
+jest.mock('@aws-sdk/s3-request-presigner', () => {
+  return {
+    getSignedUrl: jest
+      .fn()
+      .mockImplementation()
+      .mockReturnValue('https://example.com'),
+  };
+});
 
 describe('TransactionService', () => {
   let service: TransactionService;
@@ -26,7 +50,7 @@ describe('TransactionService', () => {
   beforeEach(async () => {
     process.env.DATABASE_URL = mongod.getUri('video');
     const module: TestingModule = await Test.createTestingModule({
-      providers: [TransactionService, PrismaService],
+      providers: [TransactionService, PrismaService, StorageService],
     }).compile();
 
     service = module.get<TransactionService>(TransactionService);
