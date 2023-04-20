@@ -1,6 +1,6 @@
 import { RabbitSubscribe } from '@golevelup/nestjs-rabbitmq';
 import { Body, Controller, Get, Param, Req, UseGuards } from '@nestjs/common';
-import { JwtAuthGuard } from 'src/auth/jwt-auth-guard';
+import { JwtAuthGuard } from '../auth/jwt-auth-guard';
 import { RequestWithUser } from 'src/common/types';
 import { TokenService } from './token.service';
 

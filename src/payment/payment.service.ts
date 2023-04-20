@@ -6,7 +6,7 @@ import { PrismaService } from '../prisma.service';
 import dayjs from 'dayjs';
 import { config } from '../common/utils/config/config';
 import { TransactionHistory } from '@prisma/client';
-import { TokenService } from 'src/token/token.service';
+import { TokenService } from '../token/token.service';
 
 @Injectable()
 export class PaymentService {

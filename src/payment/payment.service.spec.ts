@@ -8,7 +8,7 @@ import { BlockchainService } from '../blockchain/blockchain.service';
 import { StorageService } from '../storage/storage.service';
 import dayjs from 'dayjs';
 import * as process from 'process';
-import { TokenService } from 'src/token/token.service';
+import { TokenService } from '../token/token.service';
 
 jest.mock('braintree', () => ({
   Environment: {
