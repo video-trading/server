@@ -17,6 +17,7 @@ import { TranscodingService } from '../transcoding/transcoding.service';
 import { GetMyVideoDetailDto } from './dto/get-my-video-detail.dto';
 import { v4 as uuidv4 } from 'uuid';
 import { GetVideoDetailDto, GetVideoDto } from './dto/get-video.dto';
+import { ObjectId } from 'bson';
 
 @Injectable()
 export class VideoService {
@@ -445,7 +446,7 @@ export class VideoService {
       {
         $match: {
           userId: {
-            $eq: userId,
+            $oid: userId,
           },
         },
       },
@@ -473,8 +474,7 @@ export class VideoService {
       {
         $limit: per,
       },
-    ];
-    console.log(pipeline);
+    ] as any;
     const videosPromise = this.prisma.video.aggregateRaw({
       pipeline: pipeline,
     });
@@ -484,6 +484,7 @@ export class VideoService {
     });
 
     const [videos, totalResult] = await Promise.all([videosPromise, count]);
+    console.log(videos, userId);
     const newVideosPromise = (videos as unknown as GetMyVideoDto[]).map(
       async (video) => {
         const videos = await Promise.all(
