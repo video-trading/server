@@ -6,6 +6,7 @@ import { PrismaService } from '../prisma.service';
 import dayjs from 'dayjs';
 import { config } from '../common/utils/config/config';
 import { TransactionHistory } from '@prisma/client';
+import { TokenService } from 'src/token/token.service';
 
 @Injectable()
 export class PaymentService {
@@ -15,6 +16,7 @@ export class PaymentService {
     private readonly userService: UserService,
     private readonly transactionService: TransactionService,
     private readonly prismaService: PrismaService,
+    private readonly tokenService: TokenService,
   ) {
     this.gateway = new braintree.BraintreeGateway({
       environment: braintree.Environment.Sandbox,
@@ -117,12 +119,85 @@ export class PaymentService {
     throw new BadRequestException(result.message);
   }
 
+  /**
+   * Create a new transaction
+   * @param videoId The video id
+   * @param toUserId  The user id of the user who is paying
+   */
+  async createTransactionWithToken(
+    videoId: string,
+    toUserId: string,
+  ): Promise<TransactionHistory> {
+    // find if from user and to user exists
+    const toUserPromise = this.userService.findOne(toUserId);
+    const videoPromise = this.prismaService.video.findUnique({
+      where: {
+        id: videoId,
+      },
+      include: {
+        SalesInfo: true,
+      },
+    });
+    const [toUser, video] = await Promise.all([toUserPromise, videoPromise]);
+
+    const amount = `${video.SalesInfo.price * 10}`;
+    const fromUser = await this.userService.findOne(video.ownerId);
+
+    if (!toUser) {
+      throw new BadRequestException('From user does not exist');
+    }
+
+    if (!fromUser) {
+      throw new BadRequestException('To user does not exist');
+    }
+
+    const userBalance = await this.tokenService.getTotalToken(fromUser.id);
+
+    if (userBalance < video.SalesInfo.price * 10) {
+      throw new BadRequestException('Not enough token');
+    }
+
+    await this.lockVideoForSale(videoId, toUserId);
+    // pre-check if video is ready for sale
+    const { reason, can } = await this.transactionService.preCheckTransaction(
+      videoId,
+      toUserId,
+      fromUser.id,
+    );
+
+    if (!can) {
+      throw new BadRequestException(reason);
+    }
+
+    // if success, create transaction and change the ownership of the video
+    await this.tokenService.useToken(toUserId, amount);
+    const transactionHistory = await this.transactionService.create({
+      fromUserId: fromUser.id,
+      toUserId: toUser.id,
+      txHash: new Date().toISOString(),
+      value: amount,
+      videoId: videoId,
+    });
+
+    await this.prismaService.video.update({
+      where: {
+        id: videoId,
+      },
+      data: {
+        ownerId: toUser.id,
+      },
+    });
+    await this.unlockVideoForSale(videoId);
+    return transactionHistory;
+  }
+
   async rewardUser(
     amount: string,
     fromUserId: string,
     toUserId: string,
   ): Promise<any> {
-    console.log('rewardUser', amount, fromUserId, toUserId);
+    console.log('rewarding user', amount, fromUserId, toUserId);
+    await this.tokenService.rewardToken(toUserId, amount);
   }
 
   /**

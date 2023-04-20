@@ -1,5 +1,8 @@
 import { RabbitSubscribe } from '@golevelup/nestjs-rabbitmq';
-import { Controller } from '@nestjs/common';
+import { Body, Controller, Get, Param, Req, UseGuards } from '@nestjs/common';
+import { JwtAuthGuard } from 'src/auth/jwt-auth-guard';
+import { RequestWithUser } from 'src/common/types';
+import { TokenService } from './token.service';
 
 interface AddTokenDto {
   tx: string;
@@ -9,12 +12,23 @@ interface AddTokenDto {
 
 @Controller('token')
 export class TokenController {
-  @RabbitSubscribe({
-    exchange: 'token-rewarded',
-    routingKey: 'token-rewarded',
-    queue: 'token-rewarded',
-  })
-  async addnft(tx: AddTokenDto) {
+  constructor(private readonly tokenService: TokenService) {}
 
+  // @RabbitSubscribe({
+  //   exchange: 'token-rewarded',
+  //   routingKey: 'token-rewarded',
+  //   queue: 'token-rewarded',
+  // })
+  // async addToken(tx: AddTokenDto) {}
+
+  @Get('history/:userId')
+  async getTransactionHistory(@Param('userId') userId: string) {
+    return await this.tokenService.getTransactionHistory(userId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('total')
+  async getTotalToken(@Req() user: RequestWithUser) {
+    return await this.tokenService.getTotalToken(user.user.userId);
   }
 }

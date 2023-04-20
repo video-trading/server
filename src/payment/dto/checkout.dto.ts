@@ -12,3 +12,10 @@ export class CheckoutDto {
   @IsNotEmpty()
   videoId: string;
 }
+
+export class CheckoutWithTokenDto {
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  videoId: string;
+}
