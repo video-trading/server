@@ -50,6 +50,7 @@ model User {
   SendTransactions     TransactionHistory[]   @relation("sendTransactions")
   ReceivedTransactions TransactionHistory[]   @relation("receivedTransactions")
   SalesLockInfo        SalesLockInfo?
+  TokenHistory         TokenHistory[]
 }
 
 model SubscriptionRelation {
@@ -57,8 +58,8 @@ model SubscriptionRelation {
   user      User   @relation(fields: [userId], references: [id])
   following User   @relation("following", fields: [followingUserId], references: [id])
 
-  userId          String
-  followingUserId String
+  userId          String @db.ObjectId
+  followingUserId String @db.ObjectId
 }
 
 model Playlist {
@@ -66,7 +67,7 @@ model Playlist {
   name        String
   description String
   user        User     @relation(fields: [userId], references: [id])
-  userId      String
+  userId      String   @db.ObjectId
   videos      Video[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -87,7 +88,7 @@ model Video {
   transcoding     Transcoding[]
   analyzingResult AnalyzingResult?
   User            User             @relation(fields: [userId], references: [id])
-  userId          String
+  userId          String           @db.ObjectId
   Playlist        Playlist?        @relation(fields: [playlistId], references: [id])
   playlistId      String?          @db.ObjectId
   status          VideoStatus      @default(UPLOADING)
@@ -113,7 +114,7 @@ model SalesInfo {
   tokenId   String?
   // video
   Video     Video     @relation(fields: [videoId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  videoId   String    @unique
+  videoId   String    @unique @db.ObjectId
 }
 
 model SalesLockInfo {
@@ -124,7 +125,7 @@ model SalesLockInfo {
   lockUntil DateTime
   // sales info
   video     Video    @relation(fields: [videoId], references: [id])
-  videoId   String   @unique
+  videoId   String   @unique @db.ObjectId
 
   lockedBy User   @relation(fields: [userId], references: [id])
   userId   String @unique @db.ObjectId
@@ -139,7 +140,7 @@ model Comment {
   updatedAt DateTime @updatedAt
   text      String
   Video     Video    @relation(fields: [videoId], references: [id])
-  videoId   String
+  videoId   String   @db.ObjectId
 }
 
 model Category {
@@ -172,7 +173,7 @@ model Transcoding {
   updatedAt     DateTime          @updatedAt
   Video         Video             @relation(fields: [videoId], references: [id])
   targetQuality String
-  videoId       String
+  videoId       String            @db.ObjectId
   status        TranscodingStatus @default(PENDING)
 
   // unique together with videoId and targetQuality
@@ -195,6 +196,16 @@ model TransactionHistory {
 
   To   User?   @relation("receivedTransactions", fields: [toId], references: [id])
   toId String? @db.ObjectId
+}
+
+model TokenHistory {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  value     String
+  timestamp String
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String   @db.ObjectId
 }
 
 enum VideoStatus {
