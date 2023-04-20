@@ -474,6 +474,7 @@ export class VideoService {
         $limit: per,
       },
     ];
+    console.log(pipeline);
     const videosPromise = this.prisma.video.aggregateRaw({
       pipeline: pipeline,
     });

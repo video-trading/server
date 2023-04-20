@@ -15,6 +15,7 @@ import { CategoryModule } from './category/category.module';
 import { MessageQueue } from './common/messageQueue';
 import { PaymentModule } from './payment/payment.module';
 import { TransactionModule } from './transaction/transaction.module';
+import { TokenModule } from './token/token.module';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { TransactionModule } from './transaction/transaction.module';
     CategoryModule,
     PaymentModule,
     TransactionModule,
+    TokenModule,
   ],
   controllers: [AppController],
   providers: [AppService, BlockchainService],

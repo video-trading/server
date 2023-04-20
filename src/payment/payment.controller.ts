@@ -10,8 +10,10 @@ import {
 import { PaymentService } from './payment.service';
 import { JwtAuthGuard } from '../auth/jwt-auth-guard';
 import { ApiOkResponse } from '@nestjs/swagger';
-import { CheckoutDto } from './dto/checkout.dto';
+import { CheckoutDto, CheckoutWithTokenDto } from './dto/checkout.dto';
 import { RequestWithUser } from '../common/types';
+import { AmqpConnection } from '@golevelup/nestjs-rabbitmq';
+import { TokenService } from 'src/token/token.service';
 
 @Controller('payment')
 export class PaymentController {
@@ -38,6 +40,21 @@ export class PaymentController {
   ) {
     return await this.paymentService.createTransaction(
       checkoutDto.nonce,
+      checkoutDto.videoId,
+      req.user.userId,
+    );
+  }
+
+  @Post('checkout/with_token')
+  @UseGuards(JwtAuthGuard)
+  @ApiOkResponse({
+    description: 'Checkout',
+  })
+  async checkoutWithToken(
+    @Body() checkoutDto: CheckoutWithTokenDto,
+    @Req() req: RequestWithUser,
+  ) {
+    return await this.paymentService.createTransactionWithToken(
       checkoutDto.videoId,
       req.user.userId,
     );

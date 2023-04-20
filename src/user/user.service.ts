@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { PrismaService } from '../prisma.service';
@@ -131,6 +135,10 @@ export class UserService {
         Wallet: true,
       },
     });
+
+    if (!user) {
+      throw new UnauthorizedException('Invalid username or password');
+    }
 
     return {
       ...user,

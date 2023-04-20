@@ -1,4 +1,11 @@
-import { Body, Controller, Post, Request, UseGuards } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Post,
+  Request,
+  UseGuards,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LocalAuthGuard } from './local-auth.guard';
 import { CreateUserDto } from '../user/dto/create-user.dto';
@@ -15,12 +22,19 @@ export class AuthController {
   async signup(
     @Body() body: CreateUserDto,
   ): Promise<{ user: any; accessToken: string }> {
-    const user = await this.authService.signUp(body);
-    const loginedUser = await this.authService.accessToken(user);
-    return {
-      user,
-      accessToken: loginedUser,
-    };
+    try {
+      const user = await this.authService.signUp(body);
+      const loginedUser = await this.authService.accessToken(user);
+      return {
+        user,
+        accessToken: loginedUser,
+      };
+    } catch (e) {
+      if (e.code === 'P2002') {
+        throw new BadRequestException('Username already exists');
+      }
+      throw new Error('Something went wrong');
+    }
   }
 
   @UseGuards(LocalAuthGuard)
