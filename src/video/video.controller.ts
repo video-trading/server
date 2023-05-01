@@ -150,8 +150,7 @@ export class VideoController {
     @Query('category') category: string | undefined,
   ): Promise<Pagination<Video>> {
     const { page: pageInt, limit: limitInt } = getPageAndLimit(page, limit);
-
-    if (category?.length === 0) {
+    if (category?.length === 0 || category === 'undefined') {
       category = undefined;
     }
 
