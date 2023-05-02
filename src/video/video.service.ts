@@ -54,7 +54,6 @@ export class VideoService {
     const filter: { [key: string]: any } = {
       status: VideoStatus.READY,
     };
-
     if (categoryId) {
       const category = await this.prisma.category.findUnique({
         where: {

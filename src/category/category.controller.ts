@@ -1,4 +1,4 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Param } from '@nestjs/common';
 import { ApiExtraModels, ApiOkResponse, getSchemaPath } from '@nestjs/swagger';
 
 import { GetCategoryDto } from './dto/get-category.dto';
@@ -21,5 +21,10 @@ export class CategoryController {
   @Get()
   findAll() {
     return this.categoryService.findAll();
+  }
+
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.categoryService.findOne(id);
   }
 }

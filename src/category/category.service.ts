@@ -15,4 +15,15 @@ export class CategoryService {
       },
     });
   }
+
+  findOne(id: string) {
+    return this.prisma.category.findUnique({
+      where: {
+        id,
+      },
+      include: {
+        subCategories: true,
+      },
+    });
+  }
 }
