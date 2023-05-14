@@ -433,13 +433,13 @@ describe('VideoService', () => {
 
   it('Should return a proper video progress', () => {
     const progress = service.getProgressByStatus(VideoStatus.UPLOADED);
-    expect(progress).toBe((2 / 7) * 100);
+    expect(progress[0]).toBe((2 / 7) * 100);
 
     const progress2 = service.getProgressByStatus(VideoStatus.TRANSCODING);
-    expect(progress2).toBe((5 / 7) * 100);
+    expect(progress2[0]).toBe((5 / 7) * 100);
 
     const progress3 = service.getProgressByStatus(VideoStatus.READY);
-    expect(progress3).toBe(100);
+    expect(progress3[0]).toBe(100);
   });
 
   it('Should be able to get my video by id', async () => {

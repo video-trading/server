@@ -467,15 +467,17 @@ export class VideoService {
           _id: -1,
         },
       },
-      {
-        $skip: (page - 1) * per,
-      },
-      {
-        $limit: per,
-      },
     ] as any;
     const videosPromise = this.prisma.video.aggregateRaw({
-      pipeline: pipeline,
+      pipeline: [
+        ...pipeline,
+        {
+          $skip: (page - 1) * per,
+        },
+        {
+          $limit: per,
+        },
+      ],
     });
 
     const count = this.prisma.video.aggregateRaw({
@@ -483,7 +485,6 @@ export class VideoService {
     });
 
     const [videos, totalResult] = await Promise.all([videosPromise, count]);
-    console.log(videos, userId);
     const newVideosPromise = (videos as unknown as GetMyVideoDto[]).map(
       async (video) => {
         const videos = await Promise.all(
@@ -561,11 +562,13 @@ export class VideoService {
       analyzingResultPromise,
     ]);
 
+    const [progress, passed] = this.getProgressByStatus(video.status);
     return {
       ...video,
       transcodings: transcodings as any,
       analyzingResult: analyzingResult as any,
-      progress: this.getProgressByStatus(video.status),
+      progress: progress,
+      passedStatus: passed,
     };
   }
 
@@ -575,13 +578,15 @@ export class VideoService {
     }
   }
 
-  getProgressByStatus(status: VideoStatus): number {
+  getProgressByStatus(status: VideoStatus): [number, string[]] {
     const total = Object.keys(VideoStatus).length - 1;
+    const passed: string[] = [];
     let i = 0;
     for (const [key, value] of Object.entries(VideoStatus)) {
       i++;
+      passed.push(value);
       if (value === status) {
-        return (i / total) * 100;
+        return [(i / total) * 100, passed];
       }
     }
   }

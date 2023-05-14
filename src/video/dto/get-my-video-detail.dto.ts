@@ -7,4 +7,6 @@ export class GetMyVideoDetailDto extends PartialType(GetVideoDto) {
   transcodings: GetTranscodingDto[];
 
   analyzingResult: any;
+
+  passedStatus: string[];
 }
