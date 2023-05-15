@@ -3,14 +3,12 @@ import braintree from 'braintree';
 import { TransactionService } from '../transaction/transaction.service';
 import { UserService } from '../user/user.service';
 import { PrismaService } from '../prisma.service';
-import dayjs from 'dayjs';
-import { config } from '../common/utils/config/config';
 import { TransactionHistory } from '@prisma/client';
 import { TokenService } from '../token/token.service';
 
 @Injectable()
 export class PaymentService {
-  private gateway: braintree.BraintreeGateway;
+  gateway: braintree.BraintreeGateway;
 
   constructor(
     private readonly userService: UserService,
@@ -49,74 +47,77 @@ export class PaymentService {
     videoId: string,
     toUserId: string,
   ): Promise<TransactionHistory> {
-    // find if from user and to user exists
-    const toUserPromise = this.userService.findOne(toUserId);
-    const videoPromise = this.prismaService.video.findUnique({
-      where: {
-        id: videoId,
-      },
-      include: {
-        SalesInfo: true,
-      },
-    });
-    const [toUser, video] = await Promise.all([toUserPromise, videoPromise]);
-
-    const amount = `${video.SalesInfo.price}`;
-    const fromUser = await this.userService.findOne(video.ownerId);
-
-    if (!toUser) {
-      throw new BadRequestException('From user does not exist');
-    }
-
-    if (!fromUser) {
-      throw new BadRequestException('To user does not exist');
-    }
-
-    await this.lockVideoForSale(videoId, toUserId);
-    // pre-check if video is ready for sale
-    const { reason, can } = await this.transactionService.preCheckTransaction(
-      videoId,
-      toUserId,
-      fromUser.id,
-    );
-
-    if (!can) {
-      throw new BadRequestException(reason);
-    }
-
-    const result = await this.gateway.transaction.sale({
-      amount,
-      paymentMethodNonce: nonce,
-      options: {
-        submitForSettlement: true,
-      },
-    });
-
-    // if success, create transaction and change the ownership of the video
-    if (result.success) {
-      const transactionHistory = await this.transactionService.create({
-        fromUserId: fromUser.id,
-        toUserId: toUser.id,
-        txHash: result.transaction.id,
-        value: result.transaction.amount,
-        videoId: videoId,
-      });
-
-      await this.prismaService.video.update({
+    return this.prismaService.$transaction(async (tx) => {
+      // find if from user and to user exists
+      const toUserPromise = this.userService.findOne(toUserId, tx as any);
+      const videoPromise = tx.video.findUnique({
         where: {
           id: videoId,
         },
-        data: {
-          ownerId: toUser.id,
+        include: {
+          SalesInfo: true,
+        },
+      });
+      const [toUser, video] = await Promise.all([toUserPromise, videoPromise]);
+
+      const amount = `${video.SalesInfo.price}`;
+      const fromUser = await this.userService.findOne(video.ownerId, tx as any);
+
+      if (!toUser) {
+        throw new BadRequestException('From user does not exist');
+      }
+
+      if (!fromUser) {
+        throw new BadRequestException('To user does not exist');
+      }
+
+      // pre-check if video is ready for sale
+      const { reason, can } = await this.transactionService.preCheckTransaction(
+        videoId,
+        toUserId,
+        fromUser.id,
+      );
+
+      if (!can) {
+        throw new BadRequestException(reason);
+      }
+
+      const result = await this.gateway.transaction.sale({
+        amount,
+        paymentMethodNonce: nonce,
+        options: {
+          submitForSettlement: true,
         },
       });
 
-      await this.rewardUser(amount, fromUser.id, toUserId);
-      await this.unlockVideoForSale(videoId);
-      return transactionHistory;
-    }
+      // if success, create transaction and change the ownership of the video
+      if (result.success) {
+        const transactionHistory = await this.transactionService.create(
+          {
+            fromUserId: fromUser.id,
+            toUserId: toUser.id,
+            txHash: result.transaction.id,
+            value: result.transaction.amount,
+            videoId: videoId,
+          },
+          tx as any,
+        );
 
-    throw new BadRequestException(result.message);
+        await tx.video.update({
+          where: {
+            id: videoId,
+          },
+          data: {
+            ownerId: toUser.id,
+          },
+        });
+
+        await this.rewardUser(amount, fromUser.id, toUserId);
+        return transactionHistory;
+      }
+
+      throw new BadRequestException(result.message);
+    });
   }
 
   /**
@@ -157,7 +158,6 @@ export class PaymentService {
       throw new BadRequestException('Not enough token');
     }
 
-    await this.lockVideoForSale(videoId, toUserId);
     // pre-check if video is ready for sale
     const { reason, can } = await this.transactionService.preCheckTransaction(
       videoId,
@@ -187,7 +187,6 @@ export class PaymentService {
         ownerId: toUser.id,
       },
     });
-    await this.unlockVideoForSale(videoId);
     return transactionHistory;
   }
 
@@ -198,51 +197,5 @@ export class PaymentService {
   ): Promise<any> {
     console.log('rewarding user', amount, fromUserId, toUserId);
     await this.tokenService.rewardToken(toUserId, amount);
-  }
-
-  /**
-   * Lock video for sale
-   * @param videoId
-   * @param toUserId Sale to user id
-   */
-  async lockVideoForSale(videoId: string, toUserId: string) {
-    const lockedUntil = dayjs()
-      .add(config.videoLockForSaleDuration, 'minutes')
-      .toDate();
-
-    try {
-      const result = this.prismaService.video.update({
-        where: {
-          id: videoId,
-        },
-        data: {
-          SalesLockInfo: {
-            create: {
-              lockedBy: {
-                connect: {
-                  id: toUserId,
-                },
-              },
-              lockUntil: lockedUntil,
-            },
-          },
-        },
-      });
-      return result;
-    } catch (e) {
-      throw new BadRequestException('Video is already locked for sale');
-    }
-  }
-
-  /**
-   * Unlock video for sale
-   * @param videoId
-   */
-  async unlockVideoForSale(videoId: string) {
-    return this.prismaService.salesLockInfo.deleteMany({
-      where: {
-        videoId: videoId,
-      },
-    });
   }
 }

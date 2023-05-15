@@ -11,6 +11,7 @@ import { VideoQuality } from '../common/video';
 import { ConfigModule } from '@nestjs/config';
 import { TranscodingService } from '../transcoding/transcoding.service';
 import { UnauthorizedException } from '@nestjs/common';
+import dayjs from 'dayjs';
 
 jest.mock('@aws-sdk/client-s3', () => {
   return {
@@ -106,6 +107,11 @@ describe('VideoService', () => {
     await prisma.analyzingResult.deleteMany();
     await prisma.video.deleteMany();
     await prisma.user.deleteMany();
+  });
+
+  afterAll(async () => {
+    await prisma.$disconnect();
+    await mongod.stop({});
   });
 
   it('Should be able to create a video', async () => {
@@ -402,33 +408,77 @@ describe('VideoService', () => {
 
     await prisma.video.update({
       where: { id: createdVideo.id },
-      data: { status: VideoStatus.READY },
+      data: { status: VideoStatus.READY, createdAt: new Date('2023-01-01') },
     });
 
     await prisma.video.update({
       where: { id: createdVideo2.id },
-      data: { status: VideoStatus.READY },
+      data: { status: VideoStatus.READY, createdAt: new Date('2023-01-01') },
     });
 
     await prisma.video.update({
       where: { id: createdVideo3.id },
-      data: { status: VideoStatus.READY },
+      data: { status: VideoStatus.READY, createdAt: new Date('2023-01-01') },
     });
 
     await prisma.video.update({
       where: { id: createdVideo4.id },
-      data: { status: VideoStatus.READY },
+      data: { status: VideoStatus.READY, createdAt: new Date('2023-01-02') },
     });
 
     await prisma.video.update({
       where: { id: createdVideo5.id },
-      data: { status: VideoStatus.READY },
+      data: { status: VideoStatus.READY, createdAt: new Date('2023-01-02') },
     });
 
     const videos = await service.findMyVideos(userId, 1, 2);
     expect(videos.items).toHaveLength(1);
     expect(videos.items[0].videos).toHaveLength(3);
     expect(videos.metadata.total).toBe(1);
+  });
+
+  it('Should be able to find my videos', async () => {
+    const video: CreateVideoDto = {
+      title: 'Test Video',
+      fileName: 'test-video.mp4',
+      description: '',
+    };
+    const createdVideo = await service.create(video, userId);
+    const createdVideo2 = await service.create(video, userId);
+    const createdVideo3 = await service.create(video, userId);
+    const createdVideo4 = await service.create(video, userId);
+    const createdVideo5 = await service.create(video, userId);
+
+    await prisma.video.update({
+      where: { id: createdVideo.id },
+      data: { status: VideoStatus.READY, createdAt: new Date('2023-01-01') },
+    });
+
+    await prisma.video.update({
+      where: { id: createdVideo2.id },
+      data: { status: VideoStatus.READY, createdAt: new Date('2023-01-01') },
+    });
+
+    await prisma.video.update({
+      where: { id: createdVideo3.id },
+      data: { status: VideoStatus.READY, createdAt: new Date('2023-01-01') },
+    });
+
+    await prisma.video.update({
+      where: { id: createdVideo4.id },
+      data: { status: VideoStatus.READY, createdAt: new Date('2023-01-02') },
+    });
+
+    await prisma.video.update({
+      where: { id: createdVideo5.id },
+      data: { status: VideoStatus.READY, createdAt: new Date('2023-01-02') },
+    });
+
+    const videos = await service.findMyVideos(userId, 1, 1);
+    expect(videos.items).toHaveLength(1);
+    expect(videos.items[0].videos).toHaveLength(2);
+    expect(videos.metadata.total).toBe(2);
+    expect(videos.metadata.totalPages).toBe(2);
   });
 
   it('Should return a proper video progress', () => {

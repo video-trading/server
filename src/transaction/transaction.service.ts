@@ -6,7 +6,7 @@ import {
   TransactionType,
 } from './dto/get-transaction-by-user.dto';
 import { getPaginationMetaData, Pagination } from '../common/pagination';
-import { TransactionHistory } from '@prisma/client';
+import { PrismaClient, TransactionHistory } from '@prisma/client';
 import { StorageService } from '../storage/storage.service';
 
 @Injectable()
@@ -27,9 +27,10 @@ export class TransactionService {
     videoId: string,
     fromUserId: string,
     toUserId: string,
+    prisma: PrismaClient = this.prisma,
   ): Promise<{ can: boolean; reason: string | undefined }> {
     try {
-      const videoPromise = this.prisma.video.findUnique({
+      const videoPromise = prisma.video.findUnique({
         where: {
           id: videoId,
         },
@@ -39,13 +40,13 @@ export class TransactionService {
         },
       });
 
-      const fromUserPromise = this.prisma.user.findUnique({
+      const fromUserPromise = prisma.user.findUnique({
         where: {
           id: fromUserId,
         },
       });
 
-      const toUserPromise = this.prisma.user.findUnique({
+      const toUserPromise = prisma.user.findUnique({
         where: {
           id: toUserId,
         },
@@ -118,9 +119,13 @@ export class TransactionService {
   /**
    * Create a new transaction
    * @param transaction
+   * @param prisma Transaction client if already in a transaction
    */
-  async create(transaction: CreateTransactionDto) {
-    return this.prisma.transactionHistory.create({
+  async create(
+    transaction: CreateTransactionDto,
+    prisma: PrismaClient = this.prisma,
+  ) {
+    const data = {
       data: {
         txHash: transaction.txHash,
         value: transaction.value,
@@ -140,7 +145,11 @@ export class TransactionService {
           },
         },
       },
-    });
+    };
+    if (prisma) {
+      return prisma.transactionHistory.create(data);
+    }
+    return this.prisma.transactionHistory.create(data);
   }
 
   /**
