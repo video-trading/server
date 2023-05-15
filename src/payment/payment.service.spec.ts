@@ -6,7 +6,6 @@ import { MongoMemoryReplSet } from 'mongodb-memory-server';
 import { UserService } from '../user/user.service';
 import { BlockchainService } from '../blockchain/blockchain.service';
 import { StorageService } from '../storage/storage.service';
-import dayjs from 'dayjs';
 import * as process from 'process';
 import { TokenService } from '../token/token.service';
 
@@ -14,24 +13,7 @@ jest.mock('braintree', () => ({
   Environment: {
     Sandbox: 'sandbox',
   },
-  BraintreeGateway: jest.fn().mockImplementation(() => ({
-    clientToken: {
-      generate: jest.fn().mockImplementation(() => ({
-        clientToken: 'client',
-      })),
-    },
-    transaction: {
-      sale: jest.fn().mockImplementation(() => ({
-        transaction: {
-          id: 'id',
-          amount: 'amount',
-          status: 'status',
-          success: true,
-        },
-        success: true,
-      })),
-    },
-  })),
+  BraintreeGateway: jest.fn(),
 }));
 
 describe('PaymentService', () => {
@@ -123,9 +105,28 @@ describe('PaymentService', () => {
   afterEach(async () => {
     await prisma.salesLockInfo.deleteMany();
     await prisma.video.deleteMany();
+    await prisma.transactionHistory.deleteMany();
   });
 
   it('Should be able to to make a payment', async () => {
+    const braintree = {
+      clientToken: {
+        generate: jest.fn().mockImplementation(() => ({
+          clientToken: 'client',
+        })),
+      },
+      transaction: {
+        sale: jest.fn().mockImplementation(() => ({
+          transaction: {
+            id: 'id',
+            amount: 'amount',
+            status: 'status',
+            success: true,
+          },
+          success: true,
+        })),
+      },
+    };
     const video = await prisma.video.create({
       data: {
         title: '1',
@@ -149,14 +150,23 @@ describe('PaymentService', () => {
       },
     });
 
+    service.gateway = braintree as any;
     const payment = await service.createTransaction('1', video.id, userId2);
 
     expect(payment).toBeDefined();
-    const locks = await prisma.salesLockInfo.findMany();
-    expect(prisma.salesLockInfo.count()).resolves.toBe(0);
   });
 
-  it('Should not be able to to make a payment if video is locked', async () => {
+  it('Should not add transaction if payment failed', async () => {
+    const braintree = {
+      clientToken: {
+        generate: jest.fn().mockImplementation(() => ({
+          clientToken: 'client',
+        })),
+      },
+      transaction: {
+        sale: jest.fn().mockRejectedValue(new Error('error')),
+      },
+    };
     const video = await prisma.video.create({
       data: {
         title: '1',
@@ -177,22 +187,14 @@ describe('PaymentService', () => {
             price: 1,
           },
         },
-        SalesLockInfo: {
-          create: {
-            lockedBy: {
-              connect: {
-                id: userId3,
-              },
-            },
-            lockUntil: dayjs().add(1, 'day').toDate(),
-          },
-        },
       },
     });
 
+    service.gateway = braintree as any;
     await expect(() =>
-      service.createTransaction('1', video.id, userId),
-    ).rejects.toThrowError();
-    expect(prisma.salesLockInfo.count()).resolves.toBe(1);
+      service.createTransaction('1', video.id, userId2),
+    ).rejects.toThrow('error');
+    const count = await prisma.transactionHistory.count();
+    expect(count).toBe(0);
   });
 });

@@ -1,18 +1,27 @@
 import { TransactionHistory } from '@prisma/client';
 import { ApiProperty } from '@nestjs/swagger';
-import { IsDate, IsEnum, IsString } from 'class-validator';
+import { IsArray, IsDate, IsEnum, IsString } from 'class-validator';
 
 export enum TransactionType {
   RECEIVED = 'RECEIVED',
   SENT = 'SENT',
 }
 
-export class GetTransactionByUserDto implements TransactionHistory {
+export class GetTransactionByUserDto {
   @ApiProperty({
     description: 'Id of the transaction',
   })
   @IsString()
   id: string;
+
+  @ApiProperty({
+    description: 'Transactions',
+  })
+  @IsArray()
+  transactions: Transactions[];
+}
+
+class Transactions {
   @ApiProperty({
     description: 'Created at',
   })

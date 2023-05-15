@@ -10,6 +10,7 @@ import * as bcrypt from 'bcrypt';
 import { BlockchainService } from '../blockchain/blockchain.service';
 import { StorageService } from '../storage/storage.service';
 import axios from 'axios';
+import { PrismaClient } from '@prisma/client';
 
 @Injectable()
 export class UserService {
@@ -111,12 +112,18 @@ export class UserService {
     return user;
   }
 
-  findAll() {
-    return `This action returns all user`;
+  async findAll() {
+    const users = await this.prisma.user.findMany({
+      take: 10,
+    });
+
+    return users.map((u) => ({
+      name: u.name,
+    }));
   }
 
-  findOne(id: string) {
-    return this.prisma.user.findUnique({
+  findOne(id: string, prisma: PrismaClient = this.prisma) {
+    return prisma.user.findUnique({
       where: {
         id,
       },
