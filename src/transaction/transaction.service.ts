@@ -8,6 +8,7 @@ import {
 import { getPaginationMetaData, Pagination } from '../common/pagination';
 import { PrismaClient, TransactionHistory } from '@prisma/client';
 import { StorageService } from '../storage/storage.service';
+import { TransactionByDateAggregationResult } from './dto/transaction-by-date-aggregation-result';
 
 @Injectable()
 export class TransactionService {
@@ -197,60 +198,155 @@ export class TransactionService {
     page: number,
     per: number,
   ): Promise<Pagination<GetTransactionByUserDto>> {
-    const filter = {
-      OR: [
+    const pipeline = [
+      {
+        $match: {
+          $or: [
+            {
+              fromId: {
+                $eq: {
+                  $oid: userId,
+                },
+              },
+            },
+            {
+              toId: {
+                $eq: {
+                  $oid: userId,
+                },
+              },
+            },
+          ],
+        },
+      },
+      {
+        $lookup: {
+          from: 'User',
+          localField: 'fromId',
+          foreignField: '_id',
+          as: 'From',
+        },
+      },
+      {
+        $lookup: {
+          from: 'User',
+          localField: 'toId',
+          foreignField: '_id',
+          as: 'To',
+        },
+      },
+      {
+        $lookup: {
+          from: 'Video',
+          localField: 'videoId',
+          foreignField: '_id',
+          as: 'Video',
+        },
+      },
+      {
+        $unwind: {
+          path: '$Video',
+        },
+      },
+      {
+        $unwind: {
+          path: '$From',
+        },
+      },
+      {
+        $unwind: {
+          path: '$To',
+        },
+      },
+      {
+        $group: {
+          _id: {
+            $dateToString: {
+              format: '%Y-%m-%d',
+              date: '$createdAt',
+            },
+          },
+          transactions: {
+            $addToSet: '$$ROOT',
+          },
+        },
+      },
+      {
+        $sort: {
+          _id: -1,
+        },
+      },
+    ];
+
+    const transactionsPromise = this.prisma.transactionHistory.aggregateRaw({
+      pipeline: [
+        ...pipeline,
         {
-          fromId: userId,
+          $skip: (page - 1) * per,
         },
         {
-          toId: userId,
+          $limit: per,
         },
       ],
-    };
-
-    const transactionsPromise = this.prisma.transactionHistory.findMany({
-      where: filter,
-      include: {
-        From: true,
-        To: true,
-        Video: true,
-      },
-      skip: (page - 1) * per,
-      take: per,
     });
 
-    const totalPromise = this.prisma.transactionHistory.count({
-      where: filter,
+    const countPromise = this.prisma.transactionHistory.aggregateRaw({
+      pipeline: [
+        ...pipeline,
+        {
+          $count: 'count',
+        },
+      ],
     });
 
-    const [transactions, total] = await Promise.all([
+    const [transactions, count] = await Promise.all([
       transactionsPromise,
-      totalPromise,
+      countPromise,
     ]);
 
-    // generate pre-signed cover for each transaction
     const transactionsWithVideo = await Promise.all(
-      transactions.map(async (transaction) => {
-        const coverUrl = await this.storage.generatePreSignedUrlForThumbnail(
-          transaction.Video,
-        );
-        return {
-          ...transaction,
-          Video: {
-            ...transaction.Video,
-            thumbnail: coverUrl.previewUrl,
-          },
-          type:
-            transaction.fromId === userId
-              ? TransactionType.SENT
-              : TransactionType.RECEIVED,
-        };
-      }),
+      (transactions as unknown as TransactionByDateAggregationResult[]).map(
+        async (transaction) => {
+          const txWithVideos = transaction.transactions.map(async (tx) => {
+            const video = {
+              ...tx.Video,
+              _id: tx.Video._id.$oid,
+              id: tx.Video._id.$oid,
+            };
+            const coverUrl =
+              await this.storage.generatePreSignedUrlForThumbnail(video);
+            return {
+              ...tx,
+              id: tx._id.$oid,
+              fromId: tx.fromId.$oid,
+              toId: tx.toId.$oid,
+              videoId: tx.videoId.$oid,
+              Video: {
+                ...video,
+                thumbnail: coverUrl.previewUrl,
+              },
+              type:
+                tx.fromId.$oid === userId
+                  ? TransactionType.SENT
+                  : TransactionType.RECEIVED,
+            };
+          });
+
+          return {
+            id: transaction._id,
+            transactions: await Promise.all(txWithVideos),
+          };
+        },
+      ),
     );
 
     return {
-      items: transactionsWithVideo,
-      metadata: getPaginationMetaData(page, per, total),
+      items: transactionsWithVideo as any,
+      metadata: getPaginationMetaData(
+        page,
+        per,
+        (count[0] as any).count as number,
+      ),
     };
   }
 

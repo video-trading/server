@@ -4,6 +4,7 @@ import { MongoMemoryReplSet } from 'mongodb-memory-server';
 import { PrismaService } from '../prisma.service';
 import { TransactionType } from './dto/get-transaction-by-user.dto';
 import { StorageService } from '../storage/storage.service';
+import dayjs from 'dayjs';
 
 jest.mock('@aws-sdk/client-s3', () => {
   return {
@@ -206,8 +207,19 @@ describe('TransactionService', () => {
     });
     const transactions = await service.findTransactionsByUserId(userId, 1, 10);
     expect(transactions).toBeDefined();
+    expect(transactions.items[0].id).toBe(dayjs().format('YYYY-MM-DD'));
     expect(transactions.items).toHaveLength(1);
-    expect(transactions.items[0].type).toEqual(TransactionType.SENT);
+    expect(transactions.items[0].transactions[0].type).toEqual(
+      TransactionType.SENT,
+    );
+    expect(typeof transactions.items[0].transactions[0].fromId).toEqual(
+      'string',
+    );
+    expect(typeof transactions.items[0].transactions[0].toId).toEqual('string');
+    expect(typeof transactions.items[0].transactions[0].videoId).toEqual(
+      'string',
+    );
+    expect(transactions.metadata.totalPages).toBe(1);
 
     const transactions2 = await service.findTransactionsByUserId(
       userId2,
@@ -216,7 +228,9 @@ describe('TransactionService', () => {
     );
     expect(transactions2).toBeDefined();
     expect(transactions2.items).toHaveLength(1);
-    expect(transactions2.items[0].type).toEqual(TransactionType.RECEIVED);
+    expect(transactions2.items[0].transactions[0].type).toEqual(
+      TransactionType.RECEIVED,
+    );
   });
 
   it('Should be able to purchase a video', async () => {

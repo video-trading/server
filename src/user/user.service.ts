@@ -112,8 +112,14 @@ export class UserService {
     return user;
   }
 
-  findAll() {
-    return `This action returns all user`;
+  async findAll() {
+    const users = await this.prisma.user.findMany({
+      take: 10,
+    });
+
+    return users.map((u) => ({
+      name: u.name,
+    }));
   }
 
   findOne(id: string, prisma: PrismaClient = this.prisma) {

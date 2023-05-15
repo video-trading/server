@@ -125,4 +125,9 @@ export class UserController {
   updateProfile(@Request() request, @Body() updateUserDto: UpdateUserDto) {
     return this.userService.update(request.user.userId, updateUserDto);
   }
+
+  @Get()
+  listUsers() {
+    return this.userService.findAll();
+  }
 }
