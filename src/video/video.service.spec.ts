@@ -11,7 +11,6 @@ import { VideoQuality } from '../common/video';
 import { ConfigModule } from '@nestjs/config';
 import { TranscodingService } from '../transcoding/transcoding.service';
 import { UnauthorizedException } from '@nestjs/common';
-import dayjs from 'dayjs';
 
 jest.mock('@aws-sdk/client-s3', () => {
   return {

@@ -1,19 +1,9 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Post,
-  Query,
-  Req,
-  UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
 import { PaymentService } from './payment.service';
 import { JwtAuthGuard } from '../auth/jwt-auth-guard';
 import { ApiOkResponse } from '@nestjs/swagger';
 import { CheckoutDto, CheckoutWithTokenDto } from './dto/checkout.dto';
 import { RequestWithUser } from '../common/types';
-import { AmqpConnection } from '@golevelup/nestjs-rabbitmq';
-import { TokenService } from 'src/token/token.service';
 
 @Controller('payment')
 export class PaymentController {

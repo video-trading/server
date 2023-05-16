@@ -9,6 +9,11 @@ import { UserService } from '../src/user/user.service';
 import { PrismaService } from '../src/prisma.service';
 import { VideoService } from '../src/video/video.service';
 import process from 'process';
+import {
+  AmqpConnection,
+  AmqpConnectionManager,
+  RabbitMQModule,
+} from '@golevelup/nestjs-rabbitmq';
 
 jest.mock('axios', () => ({
   get: jest.fn().mockImplementation(),
@@ -83,16 +88,39 @@ describe('AppController (e2e)', () => {
   });
 
   beforeEach(async () => {
+    process.env.NODE_ENV = 'test';
     process.env.DATABASE_URL = mongod.getUri('video');
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
-    }).compile();
+    })
+      .overrideProvider(RabbitMQModule)
+      .useValue({})
+      .overrideProvider(AmqpConnection)
+      .useValue(() => ({
+        publish: jest.fn(),
+        getConnections: jest.fn(),
+      }))
+      .overrideProvider(AmqpConnectionManager)
+      .useValue(() => ({
+        createChannel: jest.fn(),
+        url: {
+          heartbeat: 1,
+        },
+        getConnections: jest.fn(),
+      }))
+      .useMocker((token) => {
+        if (token === AmqpConnection) {
+          return {
+            publish: jest.fn(),
+          };
+        }
+      })
+      .compile();
 
     app = moduleFixture.createNestApplication();
-    process.env.RABBITMQ_URI = 'RABBITMQ_URI';
+
     const userService = moduleFixture.get<UserService>(UserService);
     videoService = moduleFixture.get<VideoService>(VideoService);
-
     prisma = moduleFixture.get<PrismaService>(PrismaService);
 
     const user = await userService.create({

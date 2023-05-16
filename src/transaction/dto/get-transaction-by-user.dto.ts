@@ -1,4 +1,3 @@
-import { TransactionHistory } from '@prisma/client';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsArray, IsDate, IsEnum, IsString } from 'class-validator';
 
