@@ -9,15 +9,14 @@ import { CreateAnalyzingResult } from './dto/create-analyzing.dto';
 import { CreateVideoDto } from './dto/create-video.dto';
 import { config } from '../common/utils/config/config';
 import { getPaginationMetaData, Pagination } from '../common/pagination';
-import { Operation, StorageService } from '../storage/storage.service';
+import { StorageService } from '../storage/storage.service';
 import { UpdateVideoDto } from './dto/update-video.dto';
 import { PublishVideoDto } from './dto/publish-video.dto';
 import { GetMyVideoDto } from './dto/get-my-video.dto';
 import { TranscodingService } from '../transcoding/transcoding.service';
 import { GetMyVideoDetailDto } from './dto/get-my-video-detail.dto';
 import { v4 as uuidv4 } from 'uuid';
-import { GetVideoDetailDto, GetVideoDto } from './dto/get-video.dto';
-import { ObjectId } from 'bson';
+import { GetVideoDetailDto } from './dto/get-video.dto';
 
 @Injectable()
 export class VideoService {

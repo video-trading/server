@@ -1,11 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { PaymentController } from './payment.controller';
-import { PaymentService } from './payment.service';
-import { UserService } from '../user/user.service';
-import { PrismaService } from '../prisma.service';
-import { TransactionService } from '../transaction/transaction.service';
-import { BlockchainService } from '../blockchain/blockchain.service';
-import { StorageService } from '../storage/storage.service';
 
 jest.mock('braintree', () => ({
   Environment: {
