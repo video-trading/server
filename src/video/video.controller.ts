@@ -17,12 +17,10 @@ import {
   Pagination,
   PaginationSchema,
 } from '../common/pagination';
-import { TranscodingService } from '../transcoding/transcoding.service';
 import { SignedUrl, StorageService } from '../storage/storage.service';
+import { TranscodingService } from '../transcoding/transcoding.service';
 
-import { VideoService } from './video.service';
-import { InjectAMQPChannel } from '@enriqcg/nestjs-amqp';
-import { Channel } from 'amqplib';
+import { AmqpConnection } from '@golevelup/nestjs-rabbitmq';
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
@@ -33,17 +31,19 @@ import {
   ApiUnauthorizedResponse,
   getSchemaPath,
 } from '@nestjs/swagger';
-import { CreateVideoDto } from './dto/create-video.dto';
-import { CreateAnalyzingResult } from './dto/create-analyzing.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth-guard';
-import { GetVideoDto } from './dto/get-video.dto';
-import { UpdateVideoDto } from './dto/update-video.dto';
-import { RequestWithOptionalUser, RequestWithUser } from '../common/types';
-import { PublishVideoDto } from './dto/publish-video.dto';
-import { CreateAnalyzingJobDto } from './dto/create-analyzing-job.dto';
-import { MessageQueue } from '../common/messageQueue';
-import { GetMyVideoDetailDto } from './dto/get-my-video-detail.dto';
 import { OptionalJwtAuthGuard } from '../auth/optional-jwt-auth-guard';
+import { MessageQueue } from '../common/messageQueue';
+import { RequestWithOptionalUser, RequestWithUser } from '../common/types';
+import { CreateAnalyzingJobDto } from './dto/create-analyzing-job.dto';
+import { CreateAnalyzingResult } from './dto/create-analyzing.dto';
+import { CreateVideoDto } from './dto/create-video.dto';
+import { GetMyVideoDetailDto } from './dto/get-my-video-detail.dto';
+import { GetVideoDto } from './dto/get-video.dto';
+import { PublishVideoDto } from './dto/publish-video.dto';
+import { UpdateVideoDto } from './dto/update-video.dto';
+import { VideoService } from './video.service';
+import { Environments } from '../common/environment';
 
 @Controller('video')
 @ApiTags('video')
@@ -52,8 +52,7 @@ export class VideoController {
     private readonly videoService: VideoService,
     private readonly storageService: StorageService,
     private readonly transcodingService: TranscodingService,
-    @InjectAMQPChannel()
-    private readonly amqpChannel: Channel,
+    private readonly amqpConnection: AmqpConnection,
   ) {}
 
   @Post()
@@ -113,12 +112,15 @@ export class VideoController {
       ),
     };
 
-    const success = this.amqpChannel.publish(
-      MessageQueue.analyzingExchange,
-      `${MessageQueue.analyzingRoutingKey}.${video.id}`,
-      Buffer.from(JSON.stringify(analyzingJob)),
-    );
-    return { success: Boolean(success) };
+    if (!Environments.is_test) {
+      const success = this.amqpConnection.publish(
+        MessageQueue.analyzingExchange,
+        `${MessageQueue.analyzingRoutingKey}.${video.id}`,
+        Buffer.from(JSON.stringify(analyzingJob)),
+      );
+      return { success: Boolean(success) };
+    }
+    return { success: true };
   }
 
   @Get()
@@ -226,11 +228,13 @@ export class VideoController {
       );
 
     for (const transcoding of transodings) {
-      this.amqpChannel.publish(
-        MessageQueue.transcodingExchange,
-        `${MessageQueue.transcodingRoutingKey}.${id}`,
-        Buffer.from(JSON.stringify(transcoding)),
-      );
+      if (!Environments.is_test) {
+        this.amqpConnection.publish(
+          MessageQueue.transcodingExchange,
+          `${MessageQueue.transcodingRoutingKey}.${id}`,
+          Buffer.from(JSON.stringify(transcoding)),
+        );
+      }
     }
     await this.videoService.startTranscoding(id);
     return transodings;

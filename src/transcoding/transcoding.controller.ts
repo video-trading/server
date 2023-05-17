@@ -13,19 +13,18 @@ import { ApiCreatedResponse, ApiTags } from '@nestjs/swagger';
 import { UpdateTranscodingDto } from './dto/update-transcoding.dto';
 import { TranscodingService } from './transcoding.service';
 import { JwtAuthGuard } from '../auth/jwt-auth-guard';
-import { InjectAMQPChannel } from '@enriqcg/nestjs-amqp';
 import { Channel } from 'amqplib';
 import { RequestWithUser } from '../common/types';
 import { RetryTranscodingDto } from './dto/retry-transcoding.dto';
 import { MessageQueue } from '../common/messageQueue';
+import { AmqpConnection } from '@golevelup/nestjs-rabbitmq';
 
 @Controller('transcoding')
 @ApiTags('transcoding')
 export class TranscodingController {
   constructor(
     private readonly transcodingService: TranscodingService,
-    @InjectAMQPChannel()
-    private readonly amqpChannel: Channel,
+    private readonly amqpConnection: AmqpConnection,
   ) {}
 
   @Get(':id')
@@ -61,7 +60,7 @@ export class TranscodingController {
       );
 
     for (const transcoding of transcodings) {
-      this.amqpChannel.publish(
+      this.amqpConnection.publish(
         MessageQueue.transcodingExchange,
         `${MessageQueue.transcodingRoutingKey}.${result.videoId}`,
         Buffer.from(JSON.stringify(transcoding)),

@@ -33,6 +33,7 @@ export class AuthController {
       if (e.code === 'P2002') {
         throw new BadRequestException('Username already exists');
       }
+      console.log(e);
       throw new Error('Something went wrong');
     }
   }

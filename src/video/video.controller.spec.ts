@@ -2,8 +2,6 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { MongoMemoryReplSet } from 'mongodb-memory-server';
 import { PrismaService } from '../prisma.service';
 import { StorageService } from '../storage/storage.service';
-
-import { AMQPModule } from '@enriqcg/nestjs-amqp';
 import { ConfigModule } from '@nestjs/config';
 import { VideoQuality } from '../common/video';
 import { TranscodingService } from '../transcoding/transcoding.service';
@@ -12,6 +10,10 @@ import { VideoService } from './video.service';
 import { CreateVideoDto } from './dto/create-video.dto';
 import { VideoStatus } from '@prisma/client';
 import { CreateAnalyzingResult } from './dto/create-analyzing.dto';
+import {
+  AmqpConnection,
+  AmqpConnectionManager,
+} from '@golevelup/nestjs-rabbitmq';
 
 jest.mock('@aws-sdk/client-s3', () => {
   return {
@@ -54,7 +56,7 @@ describe('VideoController', () => {
   beforeEach(async () => {
     process.env.DATABASE_URL = mongod.getUri('video');
     const module: TestingModule = await Test.createTestingModule({
-      imports: [ConfigModule, AMQPModule.forRoot({})],
+      imports: [ConfigModule],
       controllers: [VideoController],
       providers: [
         VideoService,
@@ -62,7 +64,22 @@ describe('VideoController', () => {
         StorageService,
         TranscodingService,
       ],
-    }).compile();
+    })
+      .useMocker((token) => {
+        if (token === AmqpConnection) {
+          return {
+            publish: jest.fn(),
+          };
+        } else if (token === AmqpConnectionManager) {
+          return {
+            createChannel: jest.fn(),
+            url: {
+              heartbeat: 1,
+            },
+          };
+        }
+      })
+      .compile();
     controller = module.get<VideoController>(VideoController);
     prisma = module.get<PrismaService>(PrismaService);
 
