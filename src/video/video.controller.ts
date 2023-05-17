@@ -240,6 +240,18 @@ export class VideoController {
     return transodings;
   }
 
+  @UseGuards(JwtAuthGuard)
+  @Post(':id/analyzing/failed')
+  @ApiCreatedResponse({
+    description: 'Submit failed analyzing result',
+  })
+  async submitFailedAnalyzingResult(
+    @Param('id') id: string,
+    @Request() req: RequestWithUser,
+  ) {
+    return this.videoService.submitFailedAnalyzingResult(id);
+  }
+
   @Get('by/:userId')
   @ApiExtraModels(GetVideoDto)
   @ApiOkResponse({

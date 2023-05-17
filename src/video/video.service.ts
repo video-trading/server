@@ -429,6 +429,17 @@ export class VideoService {
     };
   }
 
+  async submitFailedAnalyzingResult(videoId: string) {
+    return this.prisma.video.update({
+      where: {
+        id: videoId,
+      },
+      data: {
+        status: VideoStatus.FAILED,
+      },
+    });
+  }
+
   /**
    * Find video by user group by date
    * @param userId  User id
