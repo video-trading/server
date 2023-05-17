@@ -2,7 +2,6 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { VideoService } from './video.service';
 import { MongoMemoryReplSet } from 'mongodb-memory-server';
 import { PrismaService } from '../prisma.service';
-import { AMQPModule } from '@enriqcg/nestjs-amqp';
 import { CreateVideoDto } from './dto/create-video.dto';
 import { BlockchainService } from '../blockchain/blockchain.service';
 import { StorageService } from '../storage/storage.service';
@@ -11,6 +10,10 @@ import { VideoQuality } from '../common/video';
 import { ConfigModule } from '@nestjs/config';
 import { TranscodingService } from '../transcoding/transcoding.service';
 import { UnauthorizedException } from '@nestjs/common';
+import {
+  AmqpConnection,
+  AmqpConnectionManager,
+} from '@golevelup/nestjs-rabbitmq';
 
 jest.mock('@aws-sdk/client-s3', () => {
   return {
@@ -55,7 +58,7 @@ describe('VideoService', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      imports: [ConfigModule, AMQPModule.forRoot({})],
+      imports: [ConfigModule],
       providers: [
         VideoService,
         PrismaService,
@@ -63,7 +66,22 @@ describe('VideoService', () => {
         StorageService,
         TranscodingService,
       ],
-    }).compile();
+    })
+      .useMocker((token) => {
+        if (token === AmqpConnection) {
+          return {
+            publish: jest.fn(),
+          };
+        } else if (token === AmqpConnectionManager) {
+          return {
+            createChannel: jest.fn(),
+            url: {
+              heartbeat: 1,
+            },
+          };
+        }
+      })
+      .compile();
 
     service = module.get<VideoService>(VideoService);
     prisma = module.get<PrismaService>(PrismaService);

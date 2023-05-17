@@ -90,6 +90,11 @@ describe('AppController (e2e)', () => {
   beforeEach(async () => {
     process.env.NODE_ENV = 'test';
     process.env.DATABASE_URL = mongod.getUri('video');
+    process.env.JWT_SECRET = 'secret';
+
+    Environments.jwt_secret = 'secret';
+    Environments.is_test = true;
+
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     })

@@ -1,5 +1,6 @@
 import { INestApplication, Injectable, OnModuleInit } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
+import { Environments } from './common/environment';
 
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit {
@@ -13,7 +14,9 @@ export class PrismaService extends PrismaClient implements OnModuleInit {
         },
       });
     } catch (e) {
-      console.log(e);
+      if (!Environments.is_test) {
+        console.log(e);
+      }
     }
   }
 

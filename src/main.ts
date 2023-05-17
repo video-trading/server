@@ -6,8 +6,6 @@ import { ValidationPipe } from '@nestjs/common';
 import { AuthService } from './auth/auth.service';
 
 async function bootstrap() {
-  config();
-
   // Create the NestJS application.
   const app = await NestFactory.create(AppModule);
 
