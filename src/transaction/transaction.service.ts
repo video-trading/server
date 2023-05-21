@@ -345,7 +345,7 @@ export class TransactionService {
       metadata: getPaginationMetaData(
         page,
         per,
-        (count[0] as any).count as number,
+        ((count[0] as any)?.count as number) ?? 0,
       ),
     };
   }
