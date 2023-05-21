@@ -14,10 +14,51 @@ import {
   AmqpConnectionManager,
   RabbitMQModule,
 } from '@golevelup/nestjs-rabbitmq';
+import { ethers } from 'ethers';
 
 jest.mock('axios', () => ({
   get: jest.fn().mockImplementation(),
   post: jest.fn().mockImplementation().mockReturnValue({ data: {} }),
+}));
+
+jest.mock('ethers', () => ({
+  ethers: {
+    providers: {
+      JsonRpcProvider: jest.fn().mockImplementation(() => {
+        return {
+          getTransactionCount: jest.fn().mockImplementation(() => {
+            return 1;
+          }),
+          getGasPrice: jest.fn().mockImplementation(() => {
+            return 1;
+          }),
+        };
+      }),
+    },
+    Wallet: jest.fn().mockImplementation(() => {
+      return {
+        connect: jest.fn(),
+        sign: jest.fn().mockImplementation(() => {
+          return {
+            serialize: jest.fn(),
+          };
+        }),
+      };
+    }),
+    Contract: jest.fn().mockImplementation(() => {
+      return {
+        connect: jest.fn(),
+        balanceOf: jest.fn().mockResolvedValue(50),
+        purchase: jest.fn().mockImplementation(() => ({
+          wait: jest.fn(),
+        })),
+        canPurchase: jest.fn().mockResolvedValue(true),
+        reward: jest.fn().mockImplementation(() => ({
+          wait: jest.fn(),
+        })),
+      };
+    }),
+  },
 }));
 
 jest.mock('@aws-sdk/client-s3', () => {
@@ -65,6 +106,11 @@ jest.mock('@aws-sdk/s3-request-presigner', () => {
       .mockImplementation()
       .mockReturnValue('https://example.com'),
   };
+});
+
+ethers.Wallet.createRandom = jest.fn().mockReturnValue({
+  address: 'address',
+  privateKey: 'privateKey',
 });
 
 describe('AppController (e2e)', () => {

@@ -3,7 +3,7 @@ import braintree from 'braintree';
 import { TransactionService } from '../transaction/transaction.service';
 import { UserService } from '../user/user.service';
 import { PrismaService } from '../prisma.service';
-import { TransactionHistory } from '@prisma/client';
+import { PrismaClient, TransactionHistory } from '@prisma/client';
 import { TokenService } from '../token/token.service';
 
 @Injectable()
@@ -47,77 +47,89 @@ export class PaymentService {
     videoId: string,
     toUserId: string,
   ): Promise<TransactionHistory> {
-    return this.prismaService.$transaction(async (tx) => {
-      // find if from user and to user exists
-      const toUserPromise = this.userService.findOne(toUserId, tx as any);
-      const videoPromise = tx.video.findUnique({
-        where: {
-          id: videoId,
-        },
-        include: {
-          SalesInfo: true,
-        },
-      });
-      const [toUser, video] = await Promise.all([toUserPromise, videoPromise]);
-
-      const amount = `${video.SalesInfo.price}`;
-      const fromUser = await this.userService.findOne(video.ownerId, tx as any);
-
-      if (!toUser) {
-        throw new BadRequestException('From user does not exist');
-      }
-
-      if (!fromUser) {
-        throw new BadRequestException('To user does not exist');
-      }
-
-      // pre-check if video is ready for sale
-      const { reason, can } = await this.transactionService.preCheckTransaction(
-        videoId,
-        toUserId,
-        fromUser.id,
-      );
-
-      if (!can) {
-        throw new BadRequestException(reason);
-      }
-
-      const result = await this.gateway.transaction.sale({
-        amount,
-        paymentMethodNonce: nonce,
-        options: {
-          submitForSettlement: true,
-        },
-      });
-
-      // if success, create transaction and change the ownership of the video
-      if (result.success) {
-        const transactionHistory = await this.transactionService.create(
-          {
-            fromUserId: fromUser.id,
-            toUserId: toUser.id,
-            txHash: result.transaction.id,
-            value: result.transaction.amount,
-            videoId: videoId,
-          },
-          tx as any,
-        );
-
-        await tx.video.update({
+    return this.prismaService.$transaction(
+      async (tx) => {
+        // find if from user and to user exists
+        const toUserPromise = this.userService.findOne(toUserId, tx as any);
+        const videoPromise = tx.video.findUnique({
           where: {
             id: videoId,
           },
-          data: {
-            ownerId: toUser.id,
+          include: {
+            SalesInfo: true,
+          },
+        });
+        const [toUser, video] = await Promise.all([
+          toUserPromise,
+          videoPromise,
+        ]);
+
+        const amount = `${video.SalesInfo.price}`;
+        const fromUser = await this.userService.findOne(
+          video.ownerId,
+          tx as any,
+        );
+
+        if (!toUser) {
+          throw new BadRequestException('From user does not exist');
+        }
+
+        if (!fromUser) {
+          throw new BadRequestException('To user does not exist');
+        }
+
+        // pre-check if video is ready for sale
+        const { reason, can } =
+          await this.transactionService.preCheckTransaction(
+            videoId,
+            toUserId,
+            fromUser.id,
+          );
+
+        if (!can) {
+          throw new BadRequestException(reason);
+        }
+
+        const result = await this.gateway.transaction.sale({
+          amount,
+          paymentMethodNonce: nonce,
+          options: {
+            submitForSettlement: true,
           },
         });
 
-        await this.rewardUser(amount, fromUser.id, toUserId);
-        return transactionHistory;
-      }
+        // if success, create transaction and change the ownership of the video
+        if (result.success) {
+          const transactionHistory = await this.transactionService.create(
+            {
+              fromUserId: fromUser.id,
+              toUserId: toUser.id,
+              txHash: result.transaction.id,
+              value: result.transaction.amount,
+              videoId: videoId,
+            },
+            tx as any,
+          );
 
-      throw new BadRequestException(result.message);
-    });
+          await tx.video.update({
+            where: {
+              id: videoId,
+            },
+            data: {
+              ownerId: toUser.id,
+            },
+          });
+
+          await this.rewardUser(amount, fromUser.id, toUserId, tx as any);
+          return transactionHistory;
+        }
+
+        throw new BadRequestException(result.message);
+      },
+      {
+        timeout: 100_000,
+      },
+    );
   }
 
   /**
@@ -129,73 +141,87 @@ export class PaymentService {
     videoId: string,
     toUserId: string,
   ): Promise<TransactionHistory> {
-    // find if from user and to user exists
-    const toUserPromise = this.userService.findOne(toUserId);
-    const videoPromise = this.prismaService.video.findUnique({
-      where: {
-        id: videoId,
+    return this.prismaService.$transaction(
+      async (tx) => {
+        // find if from user and to user exists
+        const toUserPromise = this.userService.findOne(toUserId, tx as any);
+        const videoPromise = tx.video.findUnique({
+          where: {
+            id: videoId,
+          },
+          include: {
+            SalesInfo: true,
+            Owner: true,
+          },
+        });
+        const [toUser, video] = await Promise.all([
+          toUserPromise,
+          videoPromise,
+        ]);
+
+        const amount = `${video.SalesInfo.price * 10}`;
+        const fromUser = await this.userService.findOne(
+          video.ownerId,
+          tx as any,
+        );
+
+        if (!toUser) {
+          throw new BadRequestException('From user does not exist');
+        }
+
+        if (!fromUser) {
+          throw new BadRequestException('To user does not exist');
+        }
+
+        const userBalance = await this.tokenService.getTotalToken(fromUser.id);
+
+        // pre-check if video is ready for sale
+        const { reason, can } =
+          await this.transactionService.preCheckTransaction(
+            videoId,
+            toUserId,
+            fromUser.id,
+          );
+
+        if (!can) {
+          throw new BadRequestException(reason);
+        }
+
+        // if success, create transaction and change the ownership of the video
+        await this.tokenService.useToken(
+          toUserId,
+          video.Owner.id,
+          amount,
+          tx as any,
+        );
+        const transactionHistory = await this.transactionService.create({
+          fromUserId: fromUser.id,
+          toUserId: toUser.id,
+          txHash: new Date().toISOString(),
+          value: amount,
+          videoId: videoId,
+        });
+
+        await tx.video.update({
+          where: {
+            id: videoId,
+          },
+          data: {
+            ownerId: toUser.id,
+          },
+        });
+        return transactionHistory;
       },
-      include: {
-        SalesInfo: true,
-      },
-    });
-    const [toUser, video] = await Promise.all([toUserPromise, videoPromise]);
-
-    const amount = `${video.SalesInfo.price * 10}`;
-    const fromUser = await this.userService.findOne(video.ownerId);
-
-    if (!toUser) {
-      throw new BadRequestException('From user does not exist');
-    }
-
-    if (!fromUser) {
-      throw new BadRequestException('To user does not exist');
-    }
-
-    const userBalance = await this.tokenService.getTotalToken(fromUser.id);
-
-    if (userBalance < video.SalesInfo.price * 10) {
-      throw new BadRequestException('Not enough token');
-    }
-
-    // pre-check if video is ready for sale
-    const { reason, can } = await this.transactionService.preCheckTransaction(
-      videoId,
-      toUserId,
-      fromUser.id,
+      { timeout: 100000 },
     );
-
-    if (!can) {
-      throw new BadRequestException(reason);
-    }
-
-    // if success, create transaction and change the ownership of the video
-    await this.tokenService.useToken(toUserId, amount);
-    const transactionHistory = await this.transactionService.create({
-      fromUserId: fromUser.id,
-      toUserId: toUser.id,
-      txHash: new Date().toISOString(),
-      value: amount,
-      videoId: videoId,
-    });
-
-    await this.prismaService.video.update({
-      where: {
-        id: videoId,
-      },
-      data: {
-        ownerId: toUser.id,
-      },
-    });
-    return transactionHistory;
   }
 
   async rewardUser(
     amount: string,
     fromUserId: string,
     toUserId: string,
+    tx: PrismaClient,
   ): Promise<any> {
-    console.log('rewarding user', amount, fromUserId, toUserId);
-    await this.tokenService.rewardToken(toUserId, amount);
+    await this.tokenService.rewardToken(toUserId, amount, tx as any);
   }
 }
