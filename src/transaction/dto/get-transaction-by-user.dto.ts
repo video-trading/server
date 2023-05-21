@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsArray, IsDate, IsEnum, IsString } from 'class-validator';
+import { z } from 'zod';
 
 export enum TransactionType {
   RECEIVED = 'RECEIVED',
@@ -64,3 +65,9 @@ class Transactions {
   @IsEnum(TransactionType)
   type: TransactionType;
 }
+
+export const FindTransactionsByUserIdCountSchema = z
+  .object({
+    count: z.number().optional(),
+  })
+  .array();

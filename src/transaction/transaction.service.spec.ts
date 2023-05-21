@@ -233,6 +233,12 @@ describe('TransactionService', () => {
     );
   });
 
+  it('Should be able to get a list of transactions when no tx presents', async () => {
+    const transactions = await service.findTransactionsByUserId(userId, 1, 10);
+    expect(transactions).toBeDefined();
+    expect(transactions.items).toHaveLength(0);
+  });
+
   it('Should be able to purchase a video', async () => {
     const videoForSale = await prisma.video.create({
       data: {
