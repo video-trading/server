@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { PrismaService } from '../prisma.service';
 import {
+  FindTransactionsByUserIdCountSchema,
   GetTransactionByUserDto,
   TransactionType,
 } from './dto/get-transaction-by-user.dto';
@@ -304,6 +305,8 @@ export class TransactionService {
       countPromise,
     ]);
 
+    const verifiedCount = FindTransactionsByUserIdCountSchema.parse(count);
+
     const transactionsWithVideo = await Promise.all(
       (transactions as unknown as TransactionByDateAggregationResult[]).map(
         async (transaction) => {
@@ -342,11 +345,7 @@ export class TransactionService {
 
     return {
       items: transactionsWithVideo as any,
-      metadata: getPaginationMetaData(
-        page,
-        per,
-        ((count[0] as any)?.count as number) ?? 0,
-      ),
+      metadata: getPaginationMetaData(page, per, verifiedCount[0]?.count ?? 0),
     };
   }
 
