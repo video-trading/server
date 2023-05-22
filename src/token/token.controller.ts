@@ -28,11 +28,7 @@ export class TokenController {
     @Param('page') page: string | undefined,
   ) {
     const { page: pageInt, limit: limitInt } = getPageAndLimit(page, per);
-    return await this.tokenService.getTransactionHistory(
-      userId,
-      limitInt,
-      pageInt,
-    );
+    return await this.tokenService.getTokenHistory(userId, limitInt, pageInt);
   }
 
   @UseGuards(JwtAuthGuard)
@@ -51,7 +47,7 @@ export class TokenController {
   ) {
     const { page: pageInt, limit: limitInt } = getPageAndLimit(page, per);
 
-    return await this.tokenService.getTransactionHistory(
+    return await this.tokenService.getTokenHistory(
       user.user.userId,
       limitInt,
       pageInt,
