@@ -242,7 +242,7 @@ export class TokenService {
   /**
    * Spend token to purchase video
    */
-  protected async useToken(
+  public async useToken(
     fromUser: string,
     toUser: string,
     value: string,
