@@ -1,5 +1,6 @@
 import { config } from './utils/config/config';
 import { BadRequestException } from '@nestjs/common';
+import { z } from 'zod';
 
 export const PaginationSchema = {
   type: 'object',
@@ -33,11 +34,24 @@ export const getPaginationMetaData = (
   per: number,
   total: number,
 ) => {
+  // verify page, per and total are number
+  const verified = z
+    .object({
+      page: z.number().gte(1),
+      per: z.number().gte(1),
+      total: z.number().gte(0),
+    })
+    .parse({
+      page,
+      per,
+      total,
+    });
+
   return {
-    total: total,
-    per,
-    page,
-    totalPages: Math.ceil(total / per),
+    total: verified.total,
+    per: verified.per,
+    page: verified.page,
+    totalPages: Math.ceil(verified.total / verified.per),
   };
 };
 

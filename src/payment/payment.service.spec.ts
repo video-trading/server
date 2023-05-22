@@ -16,6 +16,47 @@ jest.mock('braintree', () => ({
   BraintreeGateway: jest.fn(),
 }));
 
+jest.mock('ethers', () => ({
+  ethers: {
+    providers: {
+      JsonRpcProvider: jest.fn().mockImplementation(() => {
+        return {
+          getTransactionCount: jest.fn().mockImplementation(() => {
+            return 1;
+          }),
+          getGasPrice: jest.fn().mockImplementation(() => {
+            return 1;
+          }),
+        };
+      }),
+    },
+    Wallet: jest.fn().mockImplementation(() => {
+      return {
+        connect: jest.fn(),
+        sign: jest.fn().mockImplementation(() => {
+          return {
+            serialize: jest.fn(),
+          };
+        }),
+      };
+    }),
+    Contract: jest.fn().mockImplementation(() => {
+      return {
+        connect: jest.fn(),
+        balanceOf: jest.fn().mockResolvedValue(50),
+        purchase: jest.fn().mockImplementation(() => ({
+          wait: jest.fn(),
+        })),
+        canPurchase: jest.fn().mockResolvedValue(true),
+        reward: jest.fn().mockImplementation(() => ({
+          wait: jest.fn(),
+          hash: '1',
+        })),
+      };
+    }),
+  },
+}));
+
 describe('PaymentService', () => {
   let service: PaymentService;
   let mongod: MongoMemoryReplSet;
@@ -119,7 +160,7 @@ describe('PaymentService', () => {
         sale: jest.fn().mockImplementation(() => ({
           transaction: {
             id: 'id',
-            amount: 'amount',
+            amount: '10',
             status: 'status',
             success: true,
           },
@@ -152,7 +193,6 @@ describe('PaymentService', () => {
 
     service.gateway = braintree as any;
     const payment = await service.createTransaction('1', video.id, userId2);
-
     expect(payment).toBeDefined();
   });
 

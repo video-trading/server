@@ -11,6 +11,7 @@ import { User, Video } from '@prisma/client';
 import { VideoQuality } from 'src/common/video';
 import * as process from 'process';
 import { config } from '../common/utils/config/config';
+import { z } from 'zod';
 
 export enum Operation {
   GET = 'getObject',
@@ -50,6 +51,10 @@ export class StorageService {
   }
 
   getUploadThumbnailKey(video: Video) {
+    const Schema = z.object({
+      id: z.string(),
+    });
+    Schema.parse(video);
     return `Uploads/thumbnail/${video.id}/${video.id}.png`;
   }
 

@@ -35,40 +35,42 @@ export class UserService {
    * @param createUserDto
    */
   async create(createUserDto: CreateUserDto) {
-    const hashedPassword = await this.hashPassword(createUserDto.password);
-    const wallet = await this.blockchainService.createWallet();
-    const user = await this.prisma.user.create({
-      data: {
-        email: createUserDto.email,
-        name: createUserDto.name,
-        password: hashedPassword,
-        username: createUserDto.username,
-        Wallet: {
-          create: {
-            address: wallet.address,
-            privateKey: wallet.privateKey,
+    return this.prisma.$transaction(async (tx) => {
+      const hashedPassword = await this.hashPassword(createUserDto.password);
+      const wallet = await this.blockchainService.createWallet();
+      const user = await tx.user.create({
+        data: {
+          email: createUserDto.email,
+          name: createUserDto.name,
+          password: hashedPassword,
+          username: createUserDto.username,
+          Wallet: {
+            create: {
+              address: wallet.address,
+              privateKey: wallet.privateKey,
+            },
           },
         },
-      },
-    });
-    await this.blockchainService.requestMoney(wallet.address);
-    const foundUser = await this.prisma.user.findUnique({
-      where: {
-        id: user.id,
-      },
-      include: {
-        Wallet: true,
-      },
-    });
+      });
+      await this.blockchainService.requestMoney(wallet.address);
+      const foundUser = await tx.user.findUnique({
+        where: {
+          id: user.id,
+        },
+        include: {
+          Wallet: true,
+        },
+      });
 
-    return {
-      ...foundUser,
-      password: undefined,
-      Wallet: {
-        ...foundUser.Wallet,
-        privateKey: undefined,
-      },
-    };
+      return {
+        ...foundUser,
+        password: undefined,
+        Wallet: {
+          ...foundUser.Wallet,
+          privateKey: undefined,
+        },
+      };
+    });
   }
 
   async update(id: string, updateUserDto: UpdateUserDto) {

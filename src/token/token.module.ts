@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TokenService } from './token.service';
 import { TokenController } from './token.controller';
 import { PrismaService } from '../prisma.service';
+import { StorageService } from '../storage/storage.service';
 
 @Module({
   imports: [
@@ -31,7 +32,7 @@ import { PrismaService } from '../prisma.service';
     //   },
     // }),
   ],
-  providers: [TokenService, PrismaService],
+  providers: [TokenService, PrismaService, StorageService],
   controllers: [TokenController],
 })
 export class TokenModule {}
