@@ -87,7 +87,7 @@ describe('TokenService', () => {
   });
 
   it('Should be able to list my transaction when history is empty', async () => {
-    const transactions = await service.getTransactionHistory(user.id, 1, 1);
+    const transactions = await service.getTokenHistory(user.id, 1, 1);
     expect(transactions.items).toHaveLength(0);
     expect(transactions.metadata.totalPages).toBe(0);
     expect(transactions.metadata.total).toBe(0);
@@ -123,7 +123,7 @@ describe('TokenService', () => {
       await service.rewardToken(user.id, '100', video.id, tx as any);
     });
 
-    const transactions = await service.getTransactionHistory(user.id, 1, 1);
+    const transactions = await service.getTokenHistory(user.id, 1, 1);
     expect(transactions.items).toHaveLength(1);
     expect(transactions.metadata.totalPages).toBe(1);
     expect(transactions.metadata.total).toBe(1);

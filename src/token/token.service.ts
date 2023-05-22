@@ -1,12 +1,17 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaClient, TokenHistoryType } from '@prisma/client';
+import { PrismaClient, TokenHistoryType, User, Wallet } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
 import * as abi from './abi.json';
 import { ethers } from 'ethers';
-import { SmartContract } from './dto/smart-contract';
+import { SmartContract, SmartContractSchema } from './dto/smart-contract';
 import { getPaginationMetaData } from '../common/pagination';
 import { objectIdToId } from '../common/objectIdToId';
 import { StorageService } from '../storage/storage.service';
+import {
+  GetTokenHistoryCountSchema,
+  GetTokenHistoryDto,
+  GetTokenHistorySchema,
+} from './dto/get-token-history.dto';
 
 @Injectable()
 export class TokenService {
@@ -15,27 +20,34 @@ export class TokenService {
     private readonly storage: StorageService,
   ) {}
 
-  private async getContract(pk?: string) {
+  /**
+   * Get contract object using solidity abi.
+   * @param pk Private key of the user. If not specified, it will use the private key specified in the environment
+   */
+  protected async getContract(pk?: string) {
+    // Connect to the RPC url specified in the environment, or localhost if not specified
     const provider = new ethers.providers.JsonRpcProvider(process.env.RPC_URL!);
+    // Connect to the blockchain with the private key specified in the environment
     const signer = new ethers.Wallet(pk ?? process.env.PRIVATE_KEY!, provider);
+    // Connect to the contract with the contract address specified in the environment
     const contract = new ethers.Contract(
       process.env.CONTRACT_ADDRESS!,
       abi.abi,
       signer,
     );
-    return SmartContract.parse(contract);
+    // Return the contract object
+    return SmartContractSchema.parse(contract);
   }
 
   /**
    * Reward user with token
    */
-  async rewardToken(
+  public async rewardToken(
     user: string,
     value: string,
     videoId: string,
     tx: PrismaClient,
   ) {
-    const contract = await this.getContract();
     const userToBeRewarded = await tx.user.findUnique({
       where: {
         id: user,
@@ -45,13 +57,44 @@ export class TokenService {
       },
     });
     // call smart contract to reward user
-    const transaction = await contract.reward(
+    const transaction = await this.rewardUser(
       userToBeRewarded.Wallet.address,
-      parseFloat(value),
+      value,
     );
     // await transaction.wait();
 
     // create token history
+    await this.createTokenHistory(user, transaction.hash, value, videoId, tx);
+  }
+
+  /**
+   * Reward user with token.
+   * This function will call smart contract to reward user.
+   * @param address User's wallet address
+   * @param value Amount of token to be rewarded
+   * @returns
+   */
+  protected async rewardUser(address: string, value: string) {
+    const contract = await this.getContract();
+    const transaction = await contract.reward(address, parseFloat(value));
+    return transaction;
+  }
+
+  /**
+   * Create token history in database
+   * @param user User's id
+   * @param txHash Transaction hash. This hash is returned from smart contract
+   * @param value Amount of token
+   * @param videoId Video's id
+   * @param tx PrismaClient
+   */
+  protected async createTokenHistory(
+    user: string,
+    txHash: string,
+    value: string,
+    videoId: string,
+    tx: PrismaClient,
+  ) {
     await tx.tokenHistory.create({
       data: {
         user: {
@@ -59,7 +102,7 @@ export class TokenService {
             id: user,
           },
         },
-        txHash: transaction.hash,
+        txHash: txHash,
         value: value,
         timestamp: new Date().toISOString(),
         type: TokenHistoryType.REWARD,
@@ -72,7 +115,13 @@ export class TokenService {
     });
   }
 
-  async getTransactionHistory(user: string, per: number, page: number) {
+  /**
+   * Get token history of a user
+   * @param user User's id
+   * @param per Number of items per page
+   * @param page Page number
+   */
+  public async getTokenHistory(user: string, per: number, page: number) {
     const pipeline = [
       {
         $match: {
@@ -134,8 +183,12 @@ export class TokenService {
       tokenHistoryPromise,
       count,
     ]);
-    const itemsPromise = (tokenHistory as any)
+
+    const verifiedTotalResult = GetTokenHistoryCountSchema.parse(totalResult);
+
+    const itemsPromise = (tokenHistory as unknown as any[])
       .map((item) => objectIdToId(item))
+      .map<GetTokenHistoryDto>((item) => GetTokenHistorySchema.parse(item))
       .map(async (item) => ({
         ...item,
         transactions: await Promise.all(
@@ -147,9 +200,9 @@ export class TokenService {
                     ...tx.Video,
                     thumbnail: (
                       await this.storage.generatePreSignedUrlForThumbnail({
-                        ...tx.video,
+                        ...tx.Video,
                         id: tx.Video._id,
-                      })
+                      } as any)
                     ).previewUrl,
                   }
                 : undefined,
@@ -162,12 +215,17 @@ export class TokenService {
       metadata: getPaginationMetaData(
         page,
         per,
-        (totalResult[0] as any)?.total ?? 0,
+        verifiedTotalResult[0]?.total ?? 0,
       ),
     };
   }
 
-  async getTotalToken(user: string): Promise<string> {
+  /**
+   * Get total token of a user
+   * @param user User's id
+   * @returns
+   */
+  public async getTotalToken(user: string): Promise<string> {
     const userObj = await this.prisma.user.findUnique({
       where: {
         id: user,
@@ -181,7 +239,10 @@ export class TokenService {
     return ethers.utils.formatUnits(totalToken, 'wei');
   }
 
-  async useToken(
+  /**
+   * Spend token to purchase video
+   */
+  public async useToken(
     fromUser: string,
     toUser: string,
     value: string,
@@ -207,6 +268,24 @@ export class TokenService {
 
     const contract = await this.getContract(spender.Wallet.privateKey);
 
+    await this.purchase(contract, spender, receiver, value, tx);
+  }
+
+  /**
+   * Purchase video using [spender]'s token to [receiver]
+   * @param contract Smart contract object
+   * @param spender User who will spend token
+   * @param receiver User who will receive token
+   * @param value Amount of token to be spent
+   * @param tx PrismaClient
+   */
+  protected async purchase(
+    contract: SmartContract,
+    spender: User & { Wallet: Wallet },
+    receiver: User & { Wallet: Wallet },
+    value: string,
+    tx: PrismaClient,
+  ) {
     const canPurchase = await contract.canPurchase(
       spender.Wallet.address,
       receiver.Wallet.address,
@@ -226,7 +305,7 @@ export class TokenService {
       data: {
         user: {
           connect: {
-            id: fromUser,
+            id: spender.id,
           },
         },
         value: `-${value}`,

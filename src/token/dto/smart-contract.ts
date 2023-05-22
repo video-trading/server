@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const SmartContract = z.object({
+export const SmartContractSchema = z.object({
   balanceOf: z.function(z.tuple([z.string()]), z.any().promise()),
   // function reward(address _to, uint256 _amount) public onlyOwner
   reward: z.function(z.tuple([z.string(), z.number()]), z.any()),
@@ -12,3 +12,5 @@ export const SmartContract = z.object({
     z.boolean().promise(),
   ),
 });
+
+export type SmartContract = z.infer<typeof SmartContractSchema>;
