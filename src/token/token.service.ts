@@ -12,6 +12,14 @@ import {
   GetTokenHistoryDto,
   GetTokenHistorySchema,
 } from './dto/get-token-history.dto';
+import { VideoService } from '../video/video.service';
+import {
+  GetPaymentInfoDto,
+  PaymentMethod,
+  PaymentMethodSchema,
+} from '../payment/dto/get-payment-info.dto';
+import { UserService } from '../user/user.service';
+import { GetVideoDetailDto } from '../video/dto/get-video.dto';
 
 @Injectable()
 export class TokenService {

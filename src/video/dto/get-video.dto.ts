@@ -1,4 +1,4 @@
-import { Video, VideoStatus } from '@prisma/client';
+import { Video, VideoStatus, SalesInfo } from '@prisma/client';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class GetVideoDto implements Video {
@@ -58,4 +58,10 @@ export class GetVideoDetailDto extends GetVideoDto {
     description: 'If video is purchasable based on the user',
   })
   purchasable: boolean;
+
+  @ApiProperty({})
+  SalesInfo: SalesInfo;
+
+  @ApiProperty({})
+  Category: any;
 }
