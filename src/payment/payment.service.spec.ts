@@ -50,6 +50,7 @@ jest.mock('ethers', () => ({
         canPurchase: jest.fn().mockResolvedValue(true),
         reward: jest.fn().mockImplementation(() => ({
           wait: jest.fn(),
+          hash: '1',
         })),
       };
     }),
@@ -159,7 +160,7 @@ describe('PaymentService', () => {
         sale: jest.fn().mockImplementation(() => ({
           transaction: {
             id: 'id',
-            amount: 'amount',
+            amount: '10',
             status: 'status',
             success: true,
           },

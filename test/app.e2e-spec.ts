@@ -55,6 +55,7 @@ jest.mock('ethers', () => ({
         canPurchase: jest.fn().mockResolvedValue(true),
         reward: jest.fn().mockImplementation(() => ({
           wait: jest.fn(),
+          hash: '1',
         })),
       };
     }),
@@ -89,7 +90,7 @@ jest.mock('braintree', () => ({
       sale: jest.fn().mockImplementation(() => ({
         transaction: {
           id: 'id',
-          amount: 'amount',
+          amount: '100.00',
           status: 'status',
           success: true,
         },

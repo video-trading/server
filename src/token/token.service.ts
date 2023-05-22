@@ -5,10 +5,15 @@ import * as abi from './abi.json';
 import { ethers } from 'ethers';
 import { SmartContract } from './dto/smart-contract';
 import { getPaginationMetaData } from '../common/pagination';
+import { objectIdToId } from '../common/objectIdToId';
+import { StorageService } from '../storage/storage.service';
 
 @Injectable()
 export class TokenService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly storage: StorageService,
+  ) {}
 
   private async getContract(pk?: string) {
     const provider = new ethers.providers.JsonRpcProvider(process.env.RPC_URL!);
@@ -24,7 +29,12 @@ export class TokenService {
   /**
    * Reward user with token
    */
-  async rewardToken(user: string, value: string, tx: PrismaClient) {
+  async rewardToken(
+    user: string,
+    value: string,
+    videoId: string,
+    tx: PrismaClient,
+  ) {
     const contract = await this.getContract();
     const userToBeRewarded = await tx.user.findUnique({
       where: {
@@ -39,7 +49,7 @@ export class TokenService {
       userToBeRewarded.Wallet.address,
       parseFloat(value),
     );
-    await transaction.wait();
+    // await transaction.wait();
 
     // create token history
     await tx.tokenHistory.create({
@@ -49,9 +59,15 @@ export class TokenService {
             id: user,
           },
         },
+        txHash: transaction.hash,
         value: value,
         timestamp: new Date().toISOString(),
         type: TokenHistoryType.REWARD,
+        Video: {
+          connect: {
+            id: videoId,
+          },
+        },
       },
     });
   }
@@ -63,6 +79,20 @@ export class TokenService {
           userId: {
             $oid: user,
           },
+        },
+      },
+      {
+        $lookup: {
+          from: 'Video',
+          localField: 'videoId',
+          foreignField: '_id',
+          as: 'Video',
+        },
+      },
+      {
+        $unwind: {
+          path: '$Video',
+          preserveNullAndEmptyArrays: true,
         },
       },
       {
@@ -96,7 +126,7 @@ export class TokenService {
       ],
     });
 
-    const count = this.prisma.video.aggregateRaw({
+    const count = this.prisma.tokenHistory.aggregateRaw({
       pipeline: [...pipeline, { $count: 'total' }],
     });
 
@@ -104,13 +134,35 @@ export class TokenService {
       tokenHistoryPromise,
       count,
     ]);
-
+    const itemsPromise = (tokenHistory as any)
+      .map((item) => objectIdToId(item))
+      .map(async (item) => ({
+        ...item,
+        transactions: await Promise.all(
+          item.transactions.map(async (tx) => ({
+            ...tx,
+            Video:
+              tx.Video !== undefined
+                ? {
+                    ...tx.Video,
+                    thumbnail: (
+                      await this.storage.generatePreSignedUrlForThumbnail({
+                        ...tx.video,
+                        id: tx.Video._id,
+                      })
+                    ).previewUrl,
+                  }
+                : undefined,
+          })),
+        ),
+      }));
+    const items = await Promise.all(itemsPromise);
     return {
-      items: tokenHistory as any,
+      items: items,
       metadata: getPaginationMetaData(
         page,
         per,
-        (totalResult[0] as any)?.total,
+        (totalResult[0] as any)?.total ?? 0,
       ),
     };
   }
@@ -178,6 +230,7 @@ export class TokenService {
           },
         },
         value: `-${value}`,
+        txHash: transaction.hash,
         timestamp: new Date().toISOString(),
         type: TokenHistoryType.USED,
       },

@@ -47,7 +47,7 @@ export class PaymentService {
     videoId: string,
     toUserId: string,
   ): Promise<TransactionHistory> {
-    return this.prismaService.$transaction(
+    const history = await this.prismaService.$transaction(
       async (tx) => {
         // find if from user and to user exists
         const toUserPromise = this.userService.findOne(toUserId, tx as any);
@@ -120,7 +120,6 @@ export class PaymentService {
             },
           });
 
-          await this.rewardUser(amount, fromUser.id, toUserId, tx as any);
           return transactionHistory;
         }
 
@@ -130,6 +129,16 @@ export class PaymentService {
         timeout: 100_000,
       },
     );
+    await this.prismaService.$transaction(async () => {
+      await this.rewardUser(
+        history.value,
+        history.fromId,
+        history.toId,
+        videoId,
+        this.prismaService as any,
+      );
+    });
+    return history;
   }
 
   /**
@@ -173,8 +182,6 @@ export class PaymentService {
           throw new BadRequestException('To user does not exist');
         }
 
-        const userBalance = await this.tokenService.getTotalToken(fromUser.id);
-
         // pre-check if video is ready for sale
         const { reason, can } =
           await this.transactionService.preCheckTransaction(
@@ -216,12 +223,21 @@ export class PaymentService {
     );
   }
 
+  /**
+   * Reward user with token
+   * @param amount The amount of token
+   * @param fromUserId The user id of the user who is paying
+   * @param toUserId The user id of the user who is receiving
+   * @param videoId The video id
+   * @param tx The transaction object
+   */
   async rewardUser(
     amount: string,
     fromUserId: string,
     toUserId: string,
+    videoId: string,
     tx: PrismaClient,
   ): Promise<any> {
-    await this.tokenService.rewardToken(toUserId, amount, tx as any);
+    await this.tokenService.rewardToken(toUserId, amount, videoId, tx as any);
   }
 }
