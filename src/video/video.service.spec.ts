@@ -454,6 +454,14 @@ describe('VideoService', () => {
     expect(videos.metadata.total).toBe(1);
   });
 
+  it('Should be able to find my videos when there is no video', async () => {
+    const videos = await service.findMyVideos(userId, 1, 2);
+    expect(videos.items).toHaveLength(0);
+    expect(videos.metadata.total).toBe(0);
+    expect(videos.metadata.page).toBe(1);
+    expect(videos.metadata.totalPages).toBe(0);
+  });
+
   it('Should be able to find my videos', async () => {
     const video: CreateVideoDto = {
       title: 'Test Video',

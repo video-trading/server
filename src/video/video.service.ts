@@ -530,7 +530,7 @@ export class VideoService {
       metadata: getPaginationMetaData(
         page,
         per,
-        (totalResult[0] as any)?.total,
+        (totalResult[0] as any)?.total ?? 0,
       ),
     };
   }
