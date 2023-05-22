@@ -7,6 +7,8 @@ import { UserService } from '../user/user.service';
 import { BlockchainService } from '../blockchain/blockchain.service';
 import { StorageService } from '../storage/storage.service';
 import { TokenService } from '../token/token.service';
+import { VideoService } from '../video/video.service';
+import { TranscodingService } from '../transcoding/transcoding.service';
 
 @Module({
   providers: [
@@ -17,6 +19,8 @@ import { TokenService } from '../token/token.service';
     BlockchainService,
     StorageService,
     TokenService,
+    VideoService,
+    TranscodingService,
   ],
   controllers: [PaymentController],
 })

@@ -5,6 +5,13 @@ import { UserService } from '../user/user.service';
 import { PrismaService } from '../prisma.service';
 import { PrismaClient, TransactionHistory } from '@prisma/client';
 import { TokenService } from '../token/token.service';
+import {
+  GetPaymentInfoDto,
+  PaymentMethod,
+  PaymentMethodSchema,
+} from './dto/get-payment-info.dto';
+import { GetVideoDetailDto } from '../video/dto/get-video.dto';
+import { VideoService } from '../video/video.service';
 
 @Injectable()
 export class PaymentService {
@@ -15,6 +22,7 @@ export class PaymentService {
     private readonly transactionService: TransactionService,
     private readonly prismaService: PrismaService,
     private readonly tokenService: TokenService,
+    private readonly videoService: VideoService,
   ) {
     this.gateway = new braintree.BraintreeGateway({
       environment: braintree.Environment.Sandbox,
@@ -64,7 +72,12 @@ export class PaymentService {
           videoPromise,
         ]);
 
-        const amount = `${video.SalesInfo.price}`;
+        const paymentInfo = await this.getPaymentInfo(
+          videoId,
+          toUserId,
+          'fiat',
+        );
+
         const fromUser = await this.userService.findOne(
           video.ownerId,
           tx as any,
@@ -91,7 +104,7 @@ export class PaymentService {
         }
 
         const result = await this.gateway.transaction.sale({
-          amount,
+          amount: paymentInfo.salesInfo.total.price,
           paymentMethodNonce: nonce,
           options: {
             submitForSettlement: true,
@@ -105,7 +118,7 @@ export class PaymentService {
               fromUserId: fromUser.id,
               toUserId: toUser.id,
               txHash: result.transaction.id,
-              value: result.transaction.amount,
+              value: `${paymentInfo.salesInfo.total.price} ${paymentInfo.salesInfo.total.unit}`,
               videoId: videoId,
             },
             tx as any,
@@ -168,7 +181,12 @@ export class PaymentService {
           videoPromise,
         ]);
 
-        const amount = `${video.SalesInfo.price * 10}`;
+        const tokenPaymentInfo = await this.getPaymentInfo(
+          videoId,
+          toUserId,
+          'token',
+        );
+
         const fromUser = await this.userService.findOne(
           video.ownerId,
           tx as any,
@@ -198,14 +216,14 @@ export class PaymentService {
         await this.tokenService.useToken(
           toUserId,
           video.Owner.id,
-          amount,
+          tokenPaymentInfo.salesInfo.total.price,
           tx as any,
         );
         const transactionHistory = await this.transactionService.create({
           fromUserId: fromUser.id,
           toUserId: toUser.id,
           txHash: new Date().toISOString(),
-          value: amount,
+          value: `${tokenPaymentInfo.salesInfo.total.price} ${tokenPaymentInfo.salesInfo.total.unit}`,
           videoId: videoId,
         });
 
@@ -239,5 +257,75 @@ export class PaymentService {
     tx: PrismaClient,
   ): Promise<any> {
     await this.tokenService.rewardToken(toUserId, amount, videoId, tx as any);
+  }
+
+  /**
+   * Get payment info based on the payment method
+   * @param videoId
+   * @param userId
+   * @param paymentMethodStr
+   */
+  public async getPaymentInfo(
+    videoId: string,
+    userId: string,
+    paymentMethodStr: PaymentMethod,
+  ): Promise<GetPaymentInfoDto> {
+    const paymentMethod = PaymentMethodSchema.parse(paymentMethodStr);
+    const video = await this.videoService.findOne(videoId, userId);
+    const unit = paymentMethod === 'fiat' ? 'HKD' : 'vxv';
+
+    if (paymentMethod === 'fiat') {
+      return this.getFiatPrice(video, unit);
+    }
+
+    return this.getFiatPrice(video, unit);
+  }
+
+  protected getFiatPrice(
+    video: GetVideoDetailDto,
+    unit: string,
+  ): GetPaymentInfoDto {
+    return {
+      video: {
+        id: video.id,
+        title: video.title,
+        thumbnail: video.thumbnail,
+        purchasable: video.purchasable,
+        SalesInfo: {
+          price: video.SalesInfo.price.toFixed(2),
+          unit: unit,
+        },
+        Category: {
+          name: video.Category.name,
+        },
+        User: {
+          name: video.User.name,
+        },
+      },
+      salesInfo: {
+        prices: [
+          {
+            name: 'total',
+            price: video.SalesInfo.price.toFixed(2),
+            unit: unit,
+          },
+          {
+            name: 'gas-fee',
+            price: '0.00',
+            unit: unit,
+          },
+          {
+            name: 'platform-commission',
+            price: '0.00',
+            unit: unit,
+          },
+        ],
+        total: {
+          price: video.SalesInfo.price.toFixed(2),
+          unit: unit,
+          priceInNumber: video.SalesInfo.price,
+        },
+      },
+    };
   }
 }

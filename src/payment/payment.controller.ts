@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { PaymentService } from './payment.service';
 import { JwtAuthGuard } from '../auth/jwt-auth-guard';
 import { ApiOkResponse } from '@nestjs/swagger';
@@ -35,6 +44,23 @@ export class PaymentController {
     );
   }
 
+  @Get('checkout/:videoId')
+  @UseGuards(JwtAuthGuard)
+  @ApiOkResponse({
+    description: 'Get payment info',
+  })
+  async getPaymentInfoForCheckout(
+    @Param('videoId') videoId: string,
+    @Req()
+    req: RequestWithUser,
+  ) {
+    return await this.paymentService.getPaymentInfo(
+      videoId,
+      req.user.userId,
+      'fiat',
+    );
+  }
+
   @Post('checkout/with_token')
   @UseGuards(JwtAuthGuard)
   @ApiOkResponse({
@@ -47,6 +73,23 @@ export class PaymentController {
     return await this.paymentService.createTransactionWithToken(
       checkoutDto.videoId,
       req.user.userId,
+    );
+  }
+
+  @Get('checkout/with_token/:videoId')
+  @UseGuards(JwtAuthGuard)
+  @ApiOkResponse({
+    description: 'Get payment info',
+  })
+  async getPaymentInfoForTokenCheckout(
+    @Param('videoId') videoId: string,
+    @Req()
+    req: RequestWithUser,
+  ) {
+    return await this.paymentService.getPaymentInfo(
+      videoId,
+      req.user.userId,
+      'token',
     );
   }
 }

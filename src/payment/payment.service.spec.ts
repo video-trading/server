@@ -8,6 +8,8 @@ import { BlockchainService } from '../blockchain/blockchain.service';
 import { StorageService } from '../storage/storage.service';
 import * as process from 'process';
 import { TokenService } from '../token/token.service';
+import { VideoService } from '../video/video.service';
+import { TranscodingService } from '../transcoding/transcoding.service';
 
 jest.mock('braintree', () => ({
   Environment: {
@@ -87,6 +89,8 @@ describe('PaymentService', () => {
         BlockchainService,
         StorageService,
         TokenService,
+        VideoService,
+        TranscodingService,
       ],
     }).compile();
 
@@ -188,6 +192,11 @@ describe('PaymentService', () => {
             price: 1,
           },
         },
+        Category: {
+          create: {
+            name: '1',
+          },
+        },
       },
     });
 
@@ -225,6 +234,11 @@ describe('PaymentService', () => {
         SalesInfo: {
           create: {
             price: 1,
+          },
+        },
+        Category: {
+          create: {
+            name: '1',
           },
         },
       },

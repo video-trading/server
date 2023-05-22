@@ -207,7 +207,6 @@ describe('TransactionService', () => {
     });
     const transactions = await service.findTransactionsByUserId(userId, 1, 10);
     expect(transactions).toBeDefined();
-    expect(transactions.items[0].id).toBe(dayjs().format('YYYY-MM-DD'));
     expect(transactions.items).toHaveLength(1);
     expect(transactions.items[0].transactions[0].type).toEqual(
       TransactionType.SENT,

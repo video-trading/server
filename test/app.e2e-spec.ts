@@ -335,6 +335,11 @@ describe('AppController (e2e)', () => {
   });
 
   it('Should be able to upload video for sale', async () => {
+    const category = await prisma.category.create({
+      data: {
+        name: 'Test Category',
+      },
+    });
     const response = await request(app.getHttpServer())
       .post('/video')
       .set('Authorization', `Bearer ${accessKey}`)
@@ -378,6 +383,19 @@ describe('AppController (e2e)', () => {
         expect(response.body).toHaveProperty('title', 'Updated Video');
         expect(response.body).toHaveProperty('fileName', 'test.mov');
       });
+
+    await prisma.video.update({
+      where: {
+        id: videoId,
+      },
+      data: {
+        Category: {
+          connect: {
+            id: category.id,
+          },
+        },
+      },
+    });
 
     await request(app.getHttpServer())
       .patch(`/video/${videoId}/uploaded`)
