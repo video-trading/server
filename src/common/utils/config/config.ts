@@ -4,4 +4,5 @@ export const config = {
   preSignedUrlExpiration: 60 * 60 * 24, // 24 hours
   jwtTokenExpiration: 60 * 60 * 24 * 7, // 7 days
   videoLockForSaleDuration: 1, // 30 minutes,
+  searchVideoLimit: 10, // number of videos returned when searching
 };

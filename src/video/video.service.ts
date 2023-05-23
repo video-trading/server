@@ -9,7 +9,7 @@ import { CreateAnalyzingResult } from './dto/create-analyzing.dto';
 import { CreateVideoDto } from './dto/create-video.dto';
 import { config } from '../common/utils/config/config';
 import { getPaginationMetaData, Pagination } from '../common/pagination';
-import { StorageService } from '../storage/storage.service';
+import { Operation, StorageService } from '../storage/storage.service';
 import { UpdateVideoDto } from './dto/update-video.dto';
 import { PublishVideoDto } from './dto/publish-video.dto';
 import { GetMyVideoDto } from './dto/get-my-video.dto';
@@ -17,6 +17,8 @@ import { TranscodingService } from '../transcoding/transcoding.service';
 import { GetMyVideoDetailDto } from './dto/get-my-video-detail.dto';
 import { v4 as uuidv4 } from 'uuid';
 import { GetVideoDetailDto } from './dto/get-video.dto';
+import { SearchVideoResponse } from './dto/search-video.dto';
+import { Config } from 'aws-sdk';
 
 @Injectable()
 export class VideoService {
@@ -26,6 +28,11 @@ export class VideoService {
     private readonly transcodingService: TranscodingService,
   ) {}
 
+  /**
+   * Create a new video
+   * @param video
+   * @param user
+   */
   create(video: CreateVideoDto, user: string) {
     return this.prisma.video.create({
       data: {
@@ -45,11 +52,17 @@ export class VideoService {
     });
   }
 
+  /**
+   * Update a video
+   * @param page
+   * @param per
+   * @param categoryId
+   */
   async findAll(
     page: number = config.defaultStartingPage,
     per: number = config.numberOfItemsPerPage,
     categoryId: string | undefined = undefined,
-  ) {
+  ): Promise<Pagination<Video>> {
     const filter: { [key: string]: any } = {
       status: VideoStatus.READY,
     };
@@ -170,6 +183,12 @@ export class VideoService {
     };
   }
 
+  /**
+   * Update video by id
+   * @param id
+   * @param userId
+   * @param data
+   */
   async update(id: string, userId: string, data: UpdateVideoDto) {
     if (data.SalesInfo === null) {
       // delete sales info
@@ -588,6 +607,42 @@ export class VideoService {
     }
   }
 
+  /**
+   * Search videos by keyword
+   * @param keyword Search keyword
+   */
+  public async searchVideos(keyword: string): Promise<SearchVideoResponse[]> {
+    const videos = await this.prisma.video.findMany({
+      where: {
+        title: {
+          contains: keyword,
+          mode: 'insensitive',
+        },
+        status: VideoStatus.READY,
+      },
+      include: {
+        User: true,
+        Category: true,
+      },
+      take: config.searchVideoLimit,
+    });
+
+    const videoPromises = videos.map(async (video) => ({
+      id: video.id,
+      title: video.title,
+      thumbnail: await this.storage.generatePreSignedUrl(
+        video.thumbnail,
+        Operation.GET,
+      ),
+    }));
+
+    return Promise.all(videoPromises);
+  }
+
+  /**
+   * Get progress in number from 0 to 100 by status
+   * @param status Video status
+   */
   getProgressByStatus(status: VideoStatus): [number, string[]] {
     const total = Object.keys(VideoStatus).length - 1;
     const passed: string[] = [];

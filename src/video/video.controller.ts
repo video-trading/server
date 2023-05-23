@@ -44,6 +44,7 @@ import { PublishVideoDto } from './dto/publish-video.dto';
 import { UpdateVideoDto } from './dto/update-video.dto';
 import { VideoService } from './video.service';
 import { Environments } from '../common/environment';
+import { SearchVideoResponse } from './dto/search-video.dto';
 
 @Controller('video')
 @ApiTags('video')
@@ -317,5 +318,13 @@ export class VideoController {
     @Request() req: RequestWithUser,
   ) {
     return await this.videoService.findMyVideoDetailById(id, req.user.userId);
+  }
+
+  @Get('search/:keyword')
+  @ApiOkResponse({
+    description: 'Search videos by keyword',
+  })
+  async searchVideos(@Param('keyword') keyword: string) {
+    return await this.videoService.searchVideos(keyword);
   }
 }
