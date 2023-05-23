@@ -3,15 +3,26 @@ import { IsOptional, IsString } from 'class-validator';
 import { CreateSalesInfoDto } from './update-video.dto';
 
 export class PublishVideoDto {
-  @ApiProperty()
+  @ApiProperty({
+    description: 'Video title',
+  })
   @IsString()
   title: string;
 
-  @ApiProperty()
+  @ApiProperty({
+    description: 'Video description in Rich Text Format',
+  })
   @IsString()
   description: string;
 
-  @ApiProperty()
+  @ApiProperty({
+    description: "Video's sales info",
+  })
   @IsOptional()
   SalesInfo?: CreateSalesInfoDto;
+
+  @ApiProperty({
+    description: 'Category id',
+  })
+  categoryId: string;
 }

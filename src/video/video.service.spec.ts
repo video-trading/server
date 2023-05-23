@@ -44,6 +44,7 @@ describe('VideoService', () => {
   let prisma: PrismaService;
   let userId: string;
   let userId2: string;
+  let categoryId: string;
 
   beforeAll(async () => {
     mongod = await MongoMemoryReplSet.create({
@@ -116,8 +117,15 @@ describe('VideoService', () => {
       },
     });
 
+    const category = await prisma.category.create({
+      data: {
+        name: 'Test Category',
+      },
+    });
+
     userId = user.id;
     userId2 = user2.id;
+    categoryId = category.id;
   });
 
   afterEach(async () => {
@@ -242,6 +250,7 @@ describe('VideoService', () => {
       SalesInfo: {
         price: 30,
       },
+      categoryId,
     });
 
     expect(publishedVideo.title).toBe('Hello world');
@@ -370,6 +379,7 @@ describe('VideoService', () => {
       SalesInfo: undefined,
       description: '',
       title: '',
+      categoryId,
     });
     const analyzingResult = await service.submitAnalyzingResult(
       createdVideo.id,
@@ -549,6 +559,7 @@ describe('VideoService', () => {
       SalesInfo: undefined,
       description: '',
       title: '',
+      categoryId,
     });
     await service.submitAnalyzingResult(createdVideo.id, {
       quality: VideoQuality.Quality360p,

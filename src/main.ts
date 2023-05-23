@@ -15,6 +15,10 @@ function buildApiDocument() {
   return new DocumentBuilder()
     .setTitle('Video Trading server')
     .setDescription('API for Api Trading server')
+    .addTag(
+      'video',
+      'This api is used for handling video upload, analyze, list, etc',
+    )
     .addBearerAuth(
       // defines the authentication type
       // we have defined the permission role called `admin` in this example,
@@ -26,6 +30,13 @@ function buildApiDocument() {
         name: 'user',
       },
       'user',
+    )
+    .addBearerAuth(
+      {
+        description: 'Transcoding worker permission',
+        type: 'http',
+      },
+      'worker',
     )
     .setVersion('1.0')
     .build();

@@ -27,6 +27,9 @@ import {
   ApiCreatedResponse,
   ApiExtraModels,
   ApiOkResponse,
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
   ApiTags,
   ApiUnauthorizedResponse,
   getSchemaPath,
@@ -37,14 +40,13 @@ import { MessageQueue } from '../common/messageQueue';
 import { RequestWithOptionalUser, RequestWithUser } from '../common/types';
 import { CreateAnalyzingJobDto } from './dto/create-analyzing-job.dto';
 import { CreateAnalyzingResult } from './dto/create-analyzing.dto';
-import { CreateVideoDto } from './dto/create-video.dto';
+import { CreateVideoDto, CreateVideoResponse } from './dto/create-video.dto';
 import { GetMyVideoDetailDto } from './dto/get-my-video-detail.dto';
 import { GetVideoDto } from './dto/get-video.dto';
 import { PublishVideoDto } from './dto/publish-video.dto';
 import { UpdateVideoDto } from './dto/update-video.dto';
 import { VideoService } from './video.service';
 import { Environments } from '../common/environment';
-import { SearchVideoResponse } from './dto/search-video.dto';
 
 @Controller('video')
 @ApiTags('video')
@@ -58,12 +60,20 @@ export class VideoController {
 
   @Post()
   @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('user')
+  @ApiOperation({
+    summary: 'Create a new video',
+    description:
+      'Before uploading the video, you should first call this api to create a video record in the database. ' +
+      'This will return a pre-signed url for uploading the video.',
+  })
   @ApiCreatedResponse({
     description: 'Create a new video',
+    type: CreateVideoResponse,
   })
   async create(
     @Body() video: CreateVideoDto,
-    @Request() req,
+    @Request() req: RequestWithUser,
   ): Promise<{ video: Video; preSignedURL: SignedUrl }> {
     const createdVideo = await this.videoService.create(video, req.user.userId);
     const preSignedURL = await this.storageService.generatePreSignedUrlForVideo(
@@ -77,10 +87,21 @@ export class VideoController {
 
   @UseGuards(JwtAuthGuard)
   @Post(':id/publish')
-  @ApiBearerAuth()
+  @ApiBearerAuth('user')
+  @ApiParam({
+    name: 'id',
+    description: 'Video id',
+  })
+  @ApiOperation({
+    summary: 'Publish a video',
+    description:
+      "Will publish the video and set the video's status to `ANALYZING`." +
+      'This will also check if the video is uploaded to the storage bucket, ' +
+      'and will throw an error if it is not uploaded.',
+  })
   @ApiOkResponse({
     description:
-      "Will publish the video and set the video's status to ANALYZING",
+      "Will publish the video and set the video's status to `ANALYZING`",
     schema: {
       type: 'object',
       properties: {
@@ -92,7 +113,7 @@ export class VideoController {
     },
   })
   @ApiBadRequestResponse({
-    description: 'Video not found or video status is not in uploaded status',
+    description: 'Video not found or video status is not in `uploaded` status',
   })
   @ApiUnauthorizedResponse({
     description: "Unauthorized. You don't have access to this video",
@@ -126,6 +147,27 @@ export class VideoController {
 
   @Get()
   @ApiExtraModels(GetVideoDto)
+  @ApiOperation({
+    summary: 'Get a list of videos',
+    description:
+      'Get a list of videos and will return a paginated result.' +
+      'If category is specified, then only videos in that category will be returned.',
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    description: 'Page number starting from 1',
+  })
+  @ApiQuery({
+    name: 'per',
+    required: false,
+    description: 'Number of items per page',
+  })
+  @ApiQuery({
+    name: 'category',
+    required: false,
+    description: 'Category id of the video',
+  })
   @ApiOkResponse({
     description: 'Get a list of videos',
     schema: {
@@ -163,7 +205,13 @@ export class VideoController {
 
   @Get(':id')
   @UseGuards(OptionalJwtAuthGuard)
-  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Get a video',
+    description:
+      'Get a video by id. If user is authenticated,' +
+      'then the purchasable will be set based on the user',
+  })
+  @ApiBearerAuth('user')
   @ApiOkResponse({
     description:
       'Get a video. If user is authenticated, then set purchasable to true if the user has not purchased the video',
@@ -174,7 +222,11 @@ export class VideoController {
 
   @UseGuards(JwtAuthGuard)
   @Patch(':id')
-  @ApiBearerAuth()
+  @ApiBearerAuth('user')
+  @ApiOperation({
+    summary: 'Update video info',
+    description: 'Update video info by video id',
+  })
   @ApiOkResponse({
     description: 'Update video info',
     type: UpdateVideoDto,
@@ -191,7 +243,11 @@ export class VideoController {
 
   @UseGuards(JwtAuthGuard)
   @Patch(':id/uploaded')
-  @ApiBearerAuth()
+  @ApiBearerAuth('user')
+  @ApiOperation({
+    summary: 'Change video status to uploaded',
+    description: 'Change video status to uploaded',
+  })
   @ApiOkResponse({
     description: 'Change video status to uploaded',
   })
@@ -203,18 +259,28 @@ export class VideoController {
 
   @UseGuards(JwtAuthGuard)
   @Delete(':id')
-  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Delete a video',
+    description: 'Delete a video by video id',
+  })
+  @ApiBearerAuth('user')
   remove(@Param('id') id: string, @Request() req) {
     return this.videoService.remove(id, req.user.userId);
   }
 
   @UseGuards(JwtAuthGuard)
   @Post(':id/analyzing/result')
+  @ApiBearerAuth('worker')
+  @ApiOperation({
+    summary: 'Submit analyzing result',
+    description:
+      'This endpoint is used by transcoding worker to submit analyzing result',
+  })
   @ApiCreatedResponse({
     description:
       'Submit analyzing result and then create a list of transcoding video using the transcoding result',
   })
-  async submitAnalyingResult(
+  async submitAnalyzingResult(
     @Param('id') id: string,
     @Body() result: CreateAnalyzingResult,
     @Request() req: RequestWithUser,
@@ -242,7 +308,13 @@ export class VideoController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @ApiOperation({
+    summary: 'Submit failed analyzing result',
+    description:
+      'When maximum retry is reached, the worker will submit failed analyzing result',
+  })
   @Post(':id/analyzing/failed')
+  @ApiBearerAuth('worker')
   @ApiCreatedResponse({
     description: 'Submit failed analyzing result',
   })
@@ -255,6 +327,10 @@ export class VideoController {
 
   @Get('by/:userId')
   @ApiExtraModels(GetVideoDto)
+  @ApiOperation({
+    summary: 'Get a list of videos by user id',
+    description: 'Get a list of videos by user id with pagination',
+  })
   @ApiOkResponse({
     description: 'Get a list of videos',
     schema: {
@@ -287,7 +363,11 @@ export class VideoController {
 
   @Get('my/videos')
   @ApiExtraModels(GetVideoDto)
-  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Get a list of videos belong to current user',
+    description: 'Get a list of videos belong to current user with pagination',
+  })
+  @ApiBearerAuth('user')
   @UseGuards(JwtAuthGuard)
   @ApiOkResponse({
     description: 'Get a list of videos belong to current user',
@@ -308,9 +388,13 @@ export class VideoController {
 
   @Get('my/videos/:id')
   @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
+  @ApiOperation({
+    summary: "Get an user's video detail by id",
+    description: "Get an user's video detail by id",
+  })
+  @ApiBearerAuth('user')
   @ApiOkResponse({
-    description: 'Get a video detail by id',
+    description: "Get an user's video detail by id",
     type: GetMyVideoDetailDto,
   })
   async findMyVideoById(
@@ -321,6 +405,9 @@ export class VideoController {
   }
 
   @Get('search/:keyword')
+  @ApiOperation({
+    summary: 'Search videos by keyword',
+  })
   @ApiOkResponse({
     description: 'Search videos by keyword',
   })

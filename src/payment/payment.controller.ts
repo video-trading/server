@@ -10,10 +10,11 @@ import {
 } from '@nestjs/common';
 import { PaymentService } from './payment.service';
 import { JwtAuthGuard } from '../auth/jwt-auth-guard';
-import { ApiOkResponse } from '@nestjs/swagger';
+import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { CheckoutDto, CheckoutWithTokenDto } from './dto/checkout.dto';
 import { RequestWithUser } from '../common/types';
 
+@ApiTags('payment')
 @Controller('payment')
 export class PaymentController {
   constructor(private readonly paymentService: PaymentService) {}

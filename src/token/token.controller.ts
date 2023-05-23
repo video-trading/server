@@ -3,13 +3,9 @@ import { JwtAuthGuard } from '../auth/jwt-auth-guard';
 import { RequestWithUser } from 'src/common/types';
 import { TokenService } from './token.service';
 import { getPageAndLimit } from '../common/pagination';
+import { ApiTags } from '@nestjs/swagger';
 
-interface AddTokenDto {
-  tx: string;
-  timestamp: number;
-  value: string;
-}
-
+@ApiTags('token')
 @Controller('token')
 export class TokenController {
   constructor(private readonly tokenService: TokenService) {}
