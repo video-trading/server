@@ -133,7 +133,10 @@ export class PaymentService {
             },
           });
 
-          return transactionHistory;
+          return {
+            ...transactionHistory,
+            priceInNumber: paymentInfo.salesInfo.total.priceInNumber,
+          };
         }
 
         throw new BadRequestException(result.message);
@@ -144,7 +147,7 @@ export class PaymentService {
     );
     await this.prismaService.$transaction(async () => {
       await this.rewardUser(
-        history.value,
+        history.priceInNumber,
         history.fromId,
         history.toId,
         videoId,
@@ -250,13 +253,19 @@ export class PaymentService {
    * @param tx The transaction object
    */
   async rewardUser(
-    amount: string,
+    amount: number,
     fromUserId: string,
     toUserId: string,
     videoId: string,
     tx: PrismaClient,
   ): Promise<any> {
-    await this.tokenService.rewardToken(toUserId, amount, videoId, tx as any);
+    const rewardAmount = amount * 0.1;
+    await this.tokenService.rewardToken(
+      toUserId,
+      rewardAmount,
+      videoId,
+      tx as any,
+    );
   }
 
   /**
@@ -264,6 +273,7 @@ export class PaymentService {
    * @param videoId
    * @param userId
    * @param paymentMethodStr
+   * @returns Payment info
    */
   public async getPaymentInfo(
     videoId: string,

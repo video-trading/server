@@ -54,6 +54,7 @@ jest.mock('ethers', () => ({
           wait: jest.fn(),
           hash: '1',
         })),
+        symbol: jest.fn().mockResolvedValue('symbol'),
       };
     }),
   },

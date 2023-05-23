@@ -12,14 +12,6 @@ import {
   GetTokenHistoryDto,
   GetTokenHistorySchema,
 } from './dto/get-token-history.dto';
-import { VideoService } from '../video/video.service';
-import {
-  GetPaymentInfoDto,
-  PaymentMethod,
-  PaymentMethodSchema,
-} from '../payment/dto/get-payment-info.dto';
-import { UserService } from '../user/user.service';
-import { GetVideoDetailDto } from '../video/dto/get-video.dto';
 
 @Injectable()
 export class TokenService {
@@ -52,7 +44,7 @@ export class TokenService {
    */
   public async rewardToken(
     user: string,
-    value: string,
+    value: number,
     videoId: string,
     tx: PrismaClient,
   ) {
@@ -82,9 +74,9 @@ export class TokenService {
    * @param value Amount of token to be rewarded
    * @returns
    */
-  protected async rewardUser(address: string, value: string) {
+  protected async rewardUser(address: string, value: number) {
     const contract = await this.getContract();
-    const transaction = await contract.reward(address, parseFloat(value));
+    const transaction = await contract.reward(address, value);
     return transaction;
   }
 
@@ -99,7 +91,7 @@ export class TokenService {
   protected async createTokenHistory(
     user: string,
     txHash: string,
-    value: string,
+    value: number,
     videoId: string,
     tx: PrismaClient,
   ) {
@@ -111,7 +103,7 @@ export class TokenService {
           },
         },
         txHash: txHash,
-        value: value,
+        value: `${value} ${await this.getTokenSymbol()}`,
         timestamp: new Date().toISOString(),
         type: TokenHistoryType.REWARD,
         Video: {
@@ -322,5 +314,10 @@ export class TokenService {
         type: TokenHistoryType.USED,
       },
     });
+  }
+
+  protected async getTokenSymbol(): Promise<string> {
+    const contract = await this.getContract();
+    return await contract.symbol();
   }
 }
