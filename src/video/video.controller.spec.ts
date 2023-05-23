@@ -42,6 +42,7 @@ describe('VideoController', () => {
   let mongod: MongoMemoryReplSet;
   let prisma: PrismaService;
   let userId: string;
+  let categoryId: string;
 
   beforeAll(async () => {
     mongod = await MongoMemoryReplSet.create({
@@ -98,7 +99,14 @@ describe('VideoController', () => {
       },
     });
 
+    const category = await prisma.category.create({
+      data: {
+        name: 'test',
+      },
+    });
+
     userId = user.id;
+    categoryId = category.id;
   });
 
   afterEach(async () => {
@@ -330,6 +338,7 @@ describe('VideoController', () => {
         title: 'Test Video',
         description: '',
         SalesInfo: undefined,
+        categoryId: categoryId,
       },
       { user: { userId } },
     );
@@ -338,7 +347,7 @@ describe('VideoController', () => {
       frameRate: '30',
       length: 20,
     };
-    await controller.submitAnalyingResult(result.video.id, analyzeResult, {
+    await controller.submitAnalyzingResult(result.video.id, analyzeResult, {
       user: { userId },
     });
     expect(await prisma.transcoding.count()).toBe(3);
@@ -358,6 +367,7 @@ describe('VideoController', () => {
       {
         title: 'Test Video',
         description: 'Hello world',
+        categoryId: categoryId,
       },
       { user: { userId } },
     );

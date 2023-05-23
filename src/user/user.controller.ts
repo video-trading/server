@@ -15,10 +15,12 @@ import {
   ApiAcceptedResponse,
   ApiBearerAuth,
   ApiOkResponse,
+  ApiTags,
 } from '@nestjs/swagger';
 import { Operation, StorageService } from '../storage/storage.service';
 import { JwtAuthGuard } from '../auth/jwt-auth-guard';
 
+@ApiTags('user')
 @Controller('user')
 export class UserController {
   constructor(

@@ -12,6 +12,7 @@ import { VideoQuality } from 'src/common/video';
 import * as process from 'process';
 import { config } from '../common/utils/config/config';
 import { z } from 'zod';
+import { ApiProperty } from '@nestjs/swagger';
 
 export enum Operation {
   GET = 'getObject',
@@ -19,15 +20,24 @@ export enum Operation {
   PUT = 'putObject',
 }
 
-export interface SignedUrl {
+export class SignedUrl {
   /**
    * Granted PutObject permission
    */
+  @ApiProperty({
+    description: 'Pre-signed URL for uploading the file',
+  })
   url: string;
+  @ApiProperty({
+    description: 'Key of the file',
+  })
   key: string;
   /**
    * Granted Get Object permission
    */
+  @ApiProperty({
+    description: 'Pre-signed URL for downloading the file',
+  })
   previewUrl?: string;
 }
 
