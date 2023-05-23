@@ -41,6 +41,7 @@ jest.mock('ethers', () => ({
           hash: '1',
           wait: jest.fn(),
         })),
+        symbol: jest.fn().mockResolvedValue('symbol'),
       };
     }),
   },
@@ -120,7 +121,7 @@ describe('TokenService', () => {
     });
 
     await prisma.$transaction(async (tx) => {
-      await service.rewardToken(user.id, '100', video.id, tx as any);
+      await service.rewardToken(user.id, 100, video.id, tx as any);
     });
 
     const transactions = await service.getTokenHistory(user.id, 1, 1);
@@ -128,5 +129,6 @@ describe('TokenService', () => {
     expect(transactions.metadata.totalPages).toBe(1);
     expect(transactions.metadata.total).toBe(1);
     expect(transactions.metadata.page).toBe(1);
+    expect(transactions.items[0].transactions[0].value).toBe('100 symbol');
   });
 });

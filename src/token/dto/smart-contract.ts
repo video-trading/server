@@ -11,6 +11,7 @@ export const SmartContractSchema = z.object({
     z.tuple([z.string(), z.string(), z.number()]),
     z.boolean().promise(),
   ),
+  symbol: z.function(z.tuple([]), z.string().promise()),
 });
 
 export type SmartContract = z.infer<typeof SmartContractSchema>;
