@@ -460,12 +460,12 @@ export class VideoService {
   }
 
   /**
-   * Find video by user group by date
+   * Find video uploaded by user group by date
    * @param userId  User id
    * @param page  Page number
    * @param per Number of items per page
    */
-  async findMyVideos(
+  async findMyUploads(
     userId: string,
     page: number,
     per: number,
@@ -474,6 +474,101 @@ export class VideoService {
       {
         $match: {
           userId: {
+            $oid: userId,
+          },
+        },
+      },
+      {
+        $group: {
+          _id: {
+            $dateToString: {
+              format: '%Y-%m-%d',
+              date: '$createdAt',
+            },
+          },
+          videos: {
+            $addToSet: '$$ROOT',
+          },
+        },
+      },
+      {
+        $sort: {
+          _id: -1,
+        },
+      },
+    ] as any;
+    const videosPromise = this.prisma.video.aggregateRaw({
+      pipeline: [
+        ...pipeline,
+        {
+          $skip: (page - 1) * per,
+        },
+        {
+          $limit: per,
+        },
+      ],
+    });
+
+    const count = this.prisma.video.aggregateRaw({
+      pipeline: [...pipeline, { $count: 'total' }],
+    });
+
+    const [videos, totalResult] = await Promise.all([videosPromise, count]);
+    const newVideosPromise = (videos as unknown as GetMyVideoDto[]).map(
+      async (video) => {
+        const videos = await Promise.all(
+          video.videos.map(async (v) => {
+            const thumbnail = v.thumbnail
+              ? await this.storage.generatePreSignedUrl(v.thumbnail)
+              : undefined;
+
+            return {
+              ...v,
+              id: (v as any)._id.$oid,
+              thumbnail: thumbnail,
+              progress: this.getProgressByStatus(v.status),
+            };
+          }),
+        );
+
+        const sortedVideos = videos.sort((a, b) => {
+          return b.id < a.id ? -1 : 1;
+        });
+
+        return {
+          ...video,
+          videos: sortedVideos,
+        };
+      },
+    );
+
+    const newVideos = await Promise.all(newVideosPromise);
+
+    return {
+      items: newVideos as any,
+      metadata: getPaginationMetaData(
+        page,
+        per,
+        (totalResult[0] as any)?.total ?? 0,
+      ),
+    };
+  }
+
+  /**
+   * Find video owned by user group by date
+   * @param userId  User id
+   * @param page  Page number
+   * @param per Number of items per page
+   */
+  async findMyOwned(
+    userId: string,
+    page: number,
+    per: number,
+  ): Promise<Pagination<GetMyVideoDto>> {
+    const pipeline = [
+      {
+        $match: {
+          ownerId: {
             $oid: userId,
           },
         },
