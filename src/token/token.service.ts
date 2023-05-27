@@ -247,6 +247,7 @@ export class TokenService {
     toUser: string,
     value: string,
     tx: PrismaClient,
+    videoId: string,
   ) {
     const spender = await tx.user.findUnique({
       where: {
@@ -268,7 +269,7 @@ export class TokenService {
 
     const contract = await this.getContract(spender.Wallet.privateKey);
 
-    await this.purchase(contract, spender, receiver, value, tx);
+    return this.purchase(contract, spender, receiver, value, tx, videoId);
   }
 
   /**
@@ -285,6 +286,7 @@ export class TokenService {
     receiver: User & { Wallet: Wallet },
     value: string,
     tx: PrismaClient,
+    videoId: string,
   ) {
     const canPurchase = await contract.canPurchase(
       spender.Wallet.address,
@@ -312,8 +314,14 @@ export class TokenService {
         txHash: transaction.hash,
         timestamp: new Date().toISOString(),
         type: TokenHistoryType.USED,
+        Video: {
+          connect: {
+            id: videoId,
+          },
+        },
       },
     });
+    return transaction.hash;
   }
 
   protected async getTokenSymbol(): Promise<string> {

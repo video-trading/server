@@ -12,6 +12,7 @@ import {
 } from './dto/get-payment-info.dto';
 import { GetVideoDetailDto } from '../video/dto/get-video.dto';
 import { VideoService } from '../video/video.service';
+import { config } from '../common/utils/config/config';
 
 @Injectable()
 export class PaymentService {
@@ -216,16 +217,17 @@ export class PaymentService {
         }
 
         // if success, create transaction and change the ownership of the video
-        await this.tokenService.useToken(
+        const txHash = await this.tokenService.useToken(
           toUserId,
           video.Owner.id,
           tokenPaymentInfo.salesInfo.total.price,
           tx as any,
+          videoId,
         );
         const transactionHistory = await this.transactionService.create({
           fromUserId: fromUser.id,
           toUserId: toUser.id,
-          txHash: new Date().toISOString(),
+          txHash: txHash,
           value: `${tokenPaymentInfo.salesInfo.total.price} ${tokenPaymentInfo.salesInfo.total.unit}`,
           videoId: videoId,
         });
@@ -259,7 +261,7 @@ export class PaymentService {
     videoId: string,
     tx: PrismaClient,
   ): Promise<any> {
-    const rewardAmount = amount * 0.1;
+    const rewardAmount = amount * config.tokenRewardRatio;
     await this.tokenService.rewardToken(
       toUserId,
       rewardAmount,
