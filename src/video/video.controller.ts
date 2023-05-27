@@ -361,25 +361,52 @@ export class VideoController {
     return await this.videoService.findVideosByUser(userId, pageInt, limitInt);
   }
 
-  @Get('my/videos')
+  @Get('my/uploads')
   @ApiExtraModels(GetVideoDto)
   @ApiOperation({
-    summary: 'Get a list of videos belong to current user',
-    description: 'Get a list of videos belong to current user with pagination',
+    summary: 'Get a list of videos uploaded by the current user',
+    description:
+      'Get a list of videos uploaded by the current user with pagination',
   })
   @ApiBearerAuth('user')
   @UseGuards(JwtAuthGuard)
   @ApiOkResponse({
-    description: 'Get a list of videos belong to current user',
+    description: 'Get a list of videos uploaded to current user',
   })
-  async findMyVideos(
+  async findMyUploads(
     @Request() req: RequestWithUser,
     @Query('page') page: string | undefined,
     @Query('per') limit: string | undefined,
   ) {
     const { page: pageInt, limit: limitInt } = getPageAndLimit(page, limit);
 
-    return await this.videoService.findMyVideos(
+    return await this.videoService.findMyUploads(
+      req.user.userId,
+      pageInt,
+      limitInt,
+    );
+  }
+
+  @Get('my/owned')
+  @ApiExtraModels(GetVideoDto)
+  @ApiOperation({
+    summary: 'Get a list of videos owned by the current user',
+    description:
+      'Get a list of videos owned by the current user with pagination',
+  })
+  @ApiBearerAuth('user')
+  @UseGuards(JwtAuthGuard)
+  @ApiOkResponse({
+    description: 'Get a list of videos owned by the current user',
+  })
+  async findMyOwned(
+    @Request() req: RequestWithUser,
+    @Query('page') page: string | undefined,
+    @Query('per') limit: string | undefined,
+  ) {
+    const { page: pageInt, limit: limitInt } = getPageAndLimit(page, limit);
+
+    return await this.videoService.findMyOwned(
       req.user.userId,
       pageInt,
       limitInt,

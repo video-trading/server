@@ -392,7 +392,7 @@ describe('VideoController', () => {
       },
     });
 
-    const myVideos = await controller.findMyVideos(
+    const myVideos = await controller.findMyUploads(
       { user: { userId } },
       undefined,
       undefined,

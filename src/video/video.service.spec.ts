@@ -458,14 +458,14 @@ describe('VideoService', () => {
       data: { status: VideoStatus.READY, createdAt: new Date('2023-01-02') },
     });
 
-    const videos = await service.findMyVideos(userId, 1, 2);
+    const videos = await service.findMyUploads(userId, 1, 2);
     expect(videos.items).toHaveLength(1);
     expect(videos.items[0].videos).toHaveLength(3);
     expect(videos.metadata.total).toBe(1);
   });
 
   it('Should be able to find my videos when there is no video', async () => {
-    const videos = await service.findMyVideos(userId, 1, 2);
+    const videos = await service.findMyUploads(userId, 1, 2);
     expect(videos.items).toHaveLength(0);
     expect(videos.metadata.total).toBe(0);
     expect(videos.metadata.page).toBe(1);
@@ -509,7 +509,7 @@ describe('VideoService', () => {
       data: { status: VideoStatus.READY, createdAt: new Date('2023-01-02') },
     });
 
-    const videos = await service.findMyVideos(userId, 1, 1);
+    const videos = await service.findMyUploads(userId, 1, 1);
     expect(videos.items).toHaveLength(1);
     expect(videos.items[0].videos).toHaveLength(2);
     expect(videos.metadata.total).toBe(2);
