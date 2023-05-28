@@ -1,4 +1,4 @@
-FROM node:16 as builder
+FROM node:20 as builder
 
 WORKDIR /app/
 # install pnpm
@@ -11,7 +11,7 @@ RUN pnpm prisma generate
 RUN pnpm build
 
 
-FROM node:16
+FROM node:20
 WORKDIR /app/
 # copy from build image
 COPY --from=builder /app/package.json ./package.json

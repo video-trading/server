@@ -13,10 +13,17 @@ import { TransactionModule } from './transaction/transaction.module';
 import { TranscodingModule } from './transcoding/transcoding.module';
 import { UserModule } from './user/user.module';
 import { VideoModule } from './video/video.module';
+import { RedisModule } from '@nestjs-modules/ioredis';
+import { Environments } from './common/environment';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    RedisModule.forRoot({
+      config: {
+        url: Environments.redis_url,
+      },
+    }),
     AuthModule,
     VideoModule,
     StorageModule,

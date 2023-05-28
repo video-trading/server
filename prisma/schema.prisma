@@ -45,6 +45,9 @@ model User {
   Wallet   Wallet @relation(fields: [walletId], references: [id])
   walletId String @unique @db.ObjectId
 
+  // mfa
+  mfaCredential Json?
+
   Followings           SubscriptionRelation[] @relation("following")
   Subscribers          SubscriptionRelation[]
   SendTransactions     TransactionHistory[]   @relation("sendTransactions")

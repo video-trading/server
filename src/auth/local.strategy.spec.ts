@@ -35,6 +35,12 @@ jest.mock('axios', () => ({
   post: jest.fn().mockImplementation().mockReturnValue({ data: {} }),
 }));
 
+const mockRedis = {
+  set: jest.fn().mockImplementation(),
+  get: jest.fn().mockImplementation(),
+  exists: jest.fn().mockImplementation(),
+};
+
 describe('Given a local.strategy class', () => {
   let mongod: MongoMemoryReplSet;
   let userService: UserService;
@@ -63,7 +69,12 @@ describe('Given a local.strategy class', () => {
 
   it('Should be able to login', async () => {
     const strategy = new LocalStrategy(
-      new AuthService(new JwtService(), userService),
+      new AuthService(
+        new JwtService(),
+        userService,
+        mockRedis as any,
+        new PrismaService(),
+      ),
     );
     const user = await strategy.validate('test', 'password');
     expect(user).toBeDefined();
@@ -71,7 +82,12 @@ describe('Given a local.strategy class', () => {
 
   it('Should not be able to login', async () => {
     const strategy = new LocalStrategy(
-      new AuthService(new JwtService(), userService),
+      new AuthService(
+        new JwtService(),
+        userService,
+        mockRedis as any,
+        new PrismaService(),
+      ),
     );
     await expect(() =>
       strategy.validate('test', 'wrong-password'),

@@ -27,6 +27,7 @@
     "@aws-sdk/s3-request-presigner": "^3.335.0",
     "@golevelup/nestjs-rabbitmq": "^3.6.0",
     "@juicyllama/nestjs-redoc": "^2.3.10",
+    "@nestjs-modules/ioredis": "^1.0.1",
     "@nestjs/common": "^9.4.1",
     "@nestjs/config": "^2.3.2",
     "@nestjs/core": "^9.4.1",
@@ -35,6 +36,7 @@
     "@nestjs/passport": "^9.0.3",
     "@nestjs/platform-express": "^9.4.1",
     "@nestjs/swagger": "^6.3.0",
+    "@passwordless-id/webauthn": "^1.2.4",
     "@prisma/client": "^4.14.1",
     "@types/amqplib": "^0.10.1",
     "@types/braintree": "^3.3.8",
@@ -49,6 +51,7 @@
     "dayjs": "^1.11.7",
     "dotenv": "^16.0.3",
     "ethers": "^5.7.2",
+    "ioredis": "^5.3.2",
     "passport": "^0.6.0",
     "passport-jwt": "^4.0.1",
     "passport-local": "^1.0.0",
@@ -89,7 +92,8 @@
     "tsconfig-paths": "4.2.0",
     "typescript": "^5.0.4",
     "uuid": "^9.0.0",
-    "webpack": "^5.83.1"
+    "webpack": "^5.83.1",
+    "webauthn": "git://github.com/sirily11/webauthn#e5008ee140548f7d0aa7ef9c722ba3a2b42fb25f"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"
