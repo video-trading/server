@@ -11,9 +11,16 @@ jest.mock('axios', () => ({
   post: jest.fn().mockImplementation().mockReturnValue({ data: {} }),
 }));
 
+const mockRedis = {
+  set: jest.fn().mockImplementation(),
+  get: jest.fn().mockImplementation(),
+  exists: jest.fn().mockImplementation(),
+};
+
 describe('Given a auth service', function () {
   let userService: UserService;
   let mongod: MongoMemoryReplSet;
+  let prisma: PrismaService;
 
   beforeAll(async () => {
     mongod = await MongoMemoryReplSet.create({
@@ -21,7 +28,7 @@ describe('Given a auth service', function () {
     });
 
     process.env.DATABASE_URL = mongod.getUri('video');
-    const prisma = new PrismaService();
+    prisma = new PrismaService();
     userService = new UserService(
       prisma,
       new BlockchainService(),
@@ -34,7 +41,12 @@ describe('Given a auth service', function () {
   });
 
   it('Should be able to signUp', async () => {
-    const authService = new AuthService(new JwtService(), userService);
+    const authService = new AuthService(
+      new JwtService(),
+      userService,
+      mockRedis as any,
+      prisma,
+    );
     const user = await authService.signUp({
       email: '',
       name: '',

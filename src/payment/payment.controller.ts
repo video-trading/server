@@ -13,6 +13,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth-guard';
 import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { CheckoutDto, CheckoutWithTokenDto } from './dto/checkout.dto';
 import { RequestWithUser } from '../common/types';
+import { MfaGuard } from '../auth/mfa.guard';
 
 @ApiTags('payment')
 @Controller('payment')
@@ -63,7 +64,7 @@ export class PaymentController {
   }
 
   @Post('checkout/with_token')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, MfaGuard)
   @ApiOkResponse({
     description: 'Checkout',
   })

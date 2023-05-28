@@ -10,11 +10,11 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
         with:
-          node-version: '16.x'
+          node-version: '19.x'
       - uses: pnpm/action-setup@v2.2.4
         with:
-          version: 7.1.5
-      - run: pnpm install
+          version: 8.5.1
+      - run: pnpm install --config.strict-peer-dependencies=false
       - run: pnpm test
         name: Running tests
         env:

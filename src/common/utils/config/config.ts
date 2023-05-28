@@ -11,4 +11,6 @@ export const config = {
   searchVideoLimit: 10,
   // 10% of the price
   tokenRewardRatio: 1,
+  // mfa expiration time (300 seconds)
+  mfaExpiration: 5 * 60,
 };

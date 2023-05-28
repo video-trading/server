@@ -9,6 +9,8 @@ import { StorageService } from '../storage/storage.service';
 import { TokenService } from '../token/token.service';
 import { VideoService } from '../video/video.service';
 import { TranscodingService } from '../transcoding/transcoding.service';
+import { AuthService } from '../auth/auth.service';
+import { JwtService } from '@nestjs/jwt';
 
 @Module({
   providers: [
@@ -21,6 +23,8 @@ import { TranscodingService } from '../transcoding/transcoding.service';
     TokenService,
     VideoService,
     TranscodingService,
+    AuthService,
+    JwtService,
   ],
   controllers: [PaymentController],
 })
