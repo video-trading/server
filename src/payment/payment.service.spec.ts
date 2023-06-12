@@ -92,7 +92,12 @@ describe('PaymentService', () => {
         TokenService,
         VideoService,
         TranscodingService,
+        {
+          provide: 'default_IORedisModuleConnectionToken',
+          useValue: {},
+        },
       ],
+      // cache IORedisModuleConnectionToken
     }).compile();
 
     service = module.get<PaymentService>(PaymentService);
