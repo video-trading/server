@@ -12,12 +12,16 @@ import {
   GetTokenHistoryDto,
   GetTokenHistorySchema,
 } from './dto/get-token-history.dto';
+import { InjectRedis, Redis } from '@nestjs-modules/ioredis';
+import { Config } from 'aws-sdk';
+import { config } from '../common/utils/config/config';
 
 @Injectable()
 export class TokenService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly storage: StorageService,
+    @InjectRedis() private readonly redis: Redis,
   ) {}
 
   /**
@@ -226,6 +230,12 @@ export class TokenService {
    * @returns
    */
   public async getTotalToken(user: string): Promise<string> {
+    const key = `totalToken:${user}`;
+
+    if (await this.redis.exists(key)) {
+      return this.redis.get(key);
+    }
+
     const userObj = await this.prisma.user.findUnique({
       where: {
         id: user,
@@ -234,9 +244,13 @@ export class TokenService {
         Wallet: true,
       },
     });
+
     const contract = await this.getContract();
     const totalToken = await contract.balanceOf(userObj.Wallet.address);
-    return ethers.utils.formatUnits(totalToken, 'wei');
+    const total = ethers.utils.formatUnits(totalToken, 'wei');
+    await this.redis.set(key, total);
+    await this.redis.expire(key, config.tokenExpirationTime);
+    return total;
   }
 
   /**

@@ -66,7 +66,15 @@ describe('TokenService', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [TokenService, PrismaService, StorageService],
+      providers: [
+        TokenService,
+        PrismaService,
+        StorageService,
+        {
+          provide: 'default_IORedisModuleConnectionToken',
+          useValue: {},
+        },
+      ],
     }).compile();
 
     service = module.get<TokenService>(TokenService);

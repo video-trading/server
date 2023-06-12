@@ -13,4 +13,6 @@ export const config = {
   tokenRewardRatio: 1,
   // mfa expiration time (300 seconds)
   mfaExpiration: 5 * 60,
+  // token cache expiration time (3 minutes)
+  tokenExpirationTime: 60 * 3,
 };
