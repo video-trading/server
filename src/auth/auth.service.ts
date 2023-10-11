@@ -20,6 +20,7 @@ import {
 } from './dto/mfa.authenticate.dto';
 import { server } from 'webauthn';
 import { Environments } from '../common/environment';
+import { catchPrismaErrorDecorator } from '../decorators/catchPrismaDecorator';
 
 @Injectable()
 export class AuthService {
@@ -32,6 +33,7 @@ export class AuthService {
     // eslint-disable-next-line prettier/prettier
   }
 
+  @catchPrismaErrorDecorator()
   async validateUser(username: string, password: string) {
     const user = await this.userService.findOneBy(username);
     const isMatched = await this.userService.comparePassword(
@@ -60,10 +62,12 @@ export class AuthService {
     });
   }
 
+  @catchPrismaErrorDecorator()
   async signUp(user: CreateUserDto) {
     return this.userService.create(user);
   }
 
+  @catchPrismaErrorDecorator()
   async getMfaRegistrationCredentials(
     userId: string,
   ): Promise<GetMfaAuthenticationResponse> {
@@ -94,6 +98,7 @@ export class AuthService {
    * @param data
    * @returns credential id
    */
+  @catchPrismaErrorDecorator()
   async createMfaAuthentication(
     userId: string,
     data: CreateMfaAuthenticationDto,
@@ -126,6 +131,7 @@ export class AuthService {
    * @param userId
    * @param data
    */
+  @catchPrismaErrorDecorator()
   async getMfaAuthenticate(
     userId: string,
   ): Promise<GetMfaAuthenticateResponse> {
@@ -146,6 +152,7 @@ export class AuthService {
     };
   }
 
+  @catchPrismaErrorDecorator()
   async verifyMfaAuthenticate(
     userId: string,
     data: CreateMfaAuthenticateDto,
@@ -174,6 +181,7 @@ export class AuthService {
     return registration;
   }
 
+  @catchPrismaErrorDecorator()
   getRedisKey(
     userId: string,
     type: 'registration' | 'authentication' | 'authenticated',
