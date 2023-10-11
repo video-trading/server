@@ -67,19 +67,12 @@ export class AuthController {
   })
   @Post('signUp')
   async signup(@Body() body: CreateUserDto): Promise<SignupResponse> {
-    try {
-      const user = await this.authService.signUp(body);
-      const loginedUser = await this.authService.accessToken(user);
-      return {
-        user,
-        accessToken: loginedUser,
-      };
-    } catch (e) {
-      if (e.code === 'P2002') {
-        throw new BadRequestException('Username already exists');
-      }
-      throw new Error('Something went wrong');
-    }
+    const user = await this.authService.signUp(body);
+    const loginedUser = await this.authService.accessToken(user);
+    return {
+      user,
+      accessToken: loginedUser,
+    };
   }
 
   @UseGuards(LocalAuthGuard)

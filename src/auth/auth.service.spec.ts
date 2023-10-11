@@ -55,4 +55,27 @@ describe('Given a auth service', function () {
     });
     expect(user).toBeDefined();
   });
+
+  it('Should be able to signUp', async () => {
+    const authService = new AuthService(
+      new JwtService(),
+      userService,
+      mockRedis as any,
+      prisma,
+    );
+    const user = await authService.signUp({
+      email: '',
+      name: '',
+      password: 'password',
+      username: 'abc',
+    });
+
+    const user2 = await authService.signUp({
+      email: 'abc@abc.com',
+      name: 'a',
+      password: 'password',
+      username: 'abc',
+    });
+    expect(user).toBeDefined();
+  });
 });
